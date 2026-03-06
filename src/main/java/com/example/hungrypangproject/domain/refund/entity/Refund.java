@@ -1,6 +1,5 @@
 package com.example.hungrypangproject.domain.refund.entity;
 
-import com.example.hungrypangproject.domain.refund.consts.RefundStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
