@@ -1,5 +1,7 @@
 package com.example.hungrypangproject.domain.order.entity;
 
+import com.example.hungrypangproject.domain.member.entity.Member;
+import com.example.hungrypangproject.domain.store.entity.Store;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,6 +28,7 @@ public class Order {
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "order_status", nullable = false)
     private OrderStatus orderStatus;
 
@@ -34,5 +37,29 @@ public class Order {
 
     @Column(name = "used_point")
     private BigDecimal usedPoint;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "user_id")
+    private Member member;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "store_id")
+    private Store store;
+
+    public static Order create(
+            BigDecimal totalPrice,
+            BigDecimal usedPoint,
+            Member member,
+            Store store
+    ) {
+        Order order = new Order();
+        order.totalPrice = totalPrice;
+        order.orderStatus = OrderStatus.WATING; // 초기 상태값
+        order.orderAt = LocalDateTime.now();
+        order.usedPoint = usedPoint;
+        order.member = member;
+        order.store = store;
+        return order;
+    }
 
 }

@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.domain.delivery.entity;
 
+import com.example.hungrypangproject.domain.order.entity.Order;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -21,16 +22,40 @@ public class Delivery {
     private Long riderId;
 
     @Column(name = "delivery_address", nullable = false)
-    private LocalDateTime deliveryAddress;
+    private String deliveryAddress;
 
     @Column(name = "delivery_fee", nullable = false)
     private BigDecimal deliveryFee;
 
+    @Enumerated(EnumType.STRING)
     private DeliveryStatus deliveryStatus;
 
     @Column(name = "pick_up_at", nullable = false)
     private LocalDateTime pickupAt;
     @Column(name = "delivery_at")
     private LocalDateTime deliveryAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "order_id")
+    private Order order;
+
+    public static Delivery create(
+            Long riderId,
+            String deliveryAddress,
+            BigDecimal deliveryFee,
+            LocalDateTime pickupAt,
+            Order order
+    ) {
+        Delivery delivery = new Delivery();
+        delivery.riderId = riderId;
+        delivery.deliveryAddress = deliveryAddress;
+        delivery.deliveryFee = deliveryFee;
+        delivery.deliveryStatus = DeliveryStatus.PICKEDUP;
+        delivery.pickupAt = pickupAt;
+        delivery.deliveryAt = null;
+        delivery.order = order;
+        return delivery;
+    }
+
 
 }
