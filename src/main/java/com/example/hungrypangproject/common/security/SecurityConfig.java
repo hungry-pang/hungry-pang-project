@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @Slf4j
 @Configuration
-@EnableJpaAuditing
 @RequiredArgsConstructor
 public class SecurityConfig {
 }

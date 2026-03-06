@@ -23,7 +23,7 @@ public class Store extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "store_name", nullable = false, length = 100)
+    @Column(name = "store_name", nullable = false, length = 10)
     private String storeName;
 
     @Column(name = "delivery_fee")
@@ -36,20 +36,17 @@ public class Store extends BaseEntity {
     @Column(name = "minimum_order")
     private BigDecimal minimumOrder;
 
-    @OneToMany(mappedBy = "store")
-    private List<Menu> menus = new ArrayList<>();
-
-    @OneToMany(mappedBy = "store")
-    private List<Order> orders = new ArrayList<>();
-
-    @OneToMany(mappedBy = "store")
-    private List<Review> reviews = new ArrayList<>();
-
-    public Store(String storeName, BigDecimal deliveryFee, StoreStatus status, BigDecimal minimumOrder) {
-        this.storeName = storeName;
-        this.deliveryFee = deliveryFee;
-        this.status = status;
-        this.minimumOrder = minimumOrder;
+    public static Store create(
+            String storeName,
+            BigDecimal deliveryFee,
+            BigDecimal minimumOrder
+    ) {
+        Store store = new Store();
+        store.storeName = storeName;
+        store.deliveryFee = deliveryFee;
+        store.status = StoreStatus.OPEN;
+        store.minimumOrder = minimumOrder;
+        return store;
     }
 
     public void update(String storeName, BigDecimal deliveryFee, BigDecimal minimumOrder) {
