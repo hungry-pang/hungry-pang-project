@@ -1,7 +1,6 @@
 package com.example.hungrypangproject.domain.payment.entity;
 
 import com.example.hungrypangproject.domain.order.entity.Order;
-import com.example.hungrypangproject.domain.payment.consts.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;

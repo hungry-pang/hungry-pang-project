@@ -1,8 +1,8 @@
 package com.example.hungrypangproject.domain.payment.entity;
 
-import com.example.hungrypangproject.domain.payment.consts.WebhookStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -27,6 +27,7 @@ public class Webhook {
 
     private LocalDateTime receivedAt;
 
+    @Builder
     public Webhook(String webhookId, String paymentId, String eventStatus, WebhookStatus status, LocalDateTime receivedAt) {
         this.webhookId = webhookId;
         this.paymentId = paymentId;
