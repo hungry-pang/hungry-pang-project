@@ -1,3 +1,11 @@
+---
+name: "🛠 작업 요청 템플릿"
+about: "새로운 작업을 정의할 때 사용하는 기본 템플릿입니다."
+title: "[TASK] "
+labels: "enhancement"
+assignees: ""
+---
+
 ## 📌 이슈 제목
 작업할 내용을 간단하게 작성해주세요.
 
