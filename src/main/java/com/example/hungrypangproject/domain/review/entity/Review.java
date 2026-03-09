@@ -24,6 +24,10 @@ public class Review extends BaseEntity {
     private Store store;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "order_id")
+    private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false, name = "user_id")
     private Member member;
 
@@ -50,6 +54,7 @@ public class Review extends BaseEntity {
     ) {
         Review review = new Review();
         review.store = store;
+        review.order = order;
         review.member = member;
         review.name = name;
         review.rating = rating;
@@ -67,5 +72,24 @@ public class Review extends BaseEntity {
     // 리뷰 상태 변경
     public void updateStatus(ReviewStatus status) {
         this.status = status;
+    }
+
+    public void delete() {
+        this.status = ReviewStatus.DELETED;
+    }
+
+    private static void validateRating(Integer rating) {
+        if (rating == null || rating < 1 || rating > 5) {
+            throw new IllegalArgumentException("별점은 1점 이상 5점 이하만 가능합니다.");
+        }
+    }
+
+    private static void validateContent(String content) {
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("리뷰 내용은 필수입니다.");
+        }
+        if (content.length() > 200) {
+            throw new IllegalArgumentException("리뷰 내용은 200자 이하만 가능합니다.");
+        }
     }
 }

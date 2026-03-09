@@ -22,7 +22,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class MenuService {
 
     private final MenuRepository menuRepository;
@@ -39,13 +39,14 @@ public class MenuService {
     }
 
     // 메뉴 상세 조회
+    @Transactional(readOnly = true)
     public MenuResponse getMenu(Long menuId) {
         Menu menu = getMenuEntity(menuId);
         return MenuResponse.from(menu);
     }
 
     // 메뉴 등록
-    @Transactional
+    @Transactional(readOnly = true)
     public MenuResponse createMenu(Long storeId, MenuCreateRequest request) {
         Store store = getStoreEntity(storeId);
 
@@ -66,7 +67,6 @@ public class MenuService {
     }
 
     // 메뉴 수정
-    @Transactional
     public MenuResponse updateMenu(Long menuId, MenuUpdateRequest request) {
         Menu menu = getMenuEntity(menuId);
 
@@ -80,7 +80,6 @@ public class MenuService {
     }
 
     // 메뉴 상태 변경
-    @Transactional
     public MenuResponse updateMenuStatus(Long menuId, MenuStatusUpdateRequest request) {
         Menu menu = getMenuEntity(menuId);
         menu.updateStatus(request.getStatus());
@@ -88,7 +87,6 @@ public class MenuService {
     }
 
     // 메뉴 삭제
-    @Transactional
     public void deleteMenu(Long menuId) {
         Menu menu = getMenuEntity(menuId);
         menuRepository.delete(menu);
