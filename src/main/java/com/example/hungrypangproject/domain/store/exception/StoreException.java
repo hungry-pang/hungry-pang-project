@@ -1,10 +1,11 @@
-package com.example.hungrypangproject.domain.order.exception;
+package com.example.hungrypangproject.domain.store.exception;
 
 import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.common.exception.ServiceException;
 
-public class OrderException extends ServiceException {
-    public OrderException(ErrorCode errorCode) {
+public class StoreException extends ServiceException {
+
+    public StoreException(ErrorCode errorCode) {
         super(errorCode);
     }
 }

@@ -19,8 +19,9 @@ public enum ErrorCode {
     ORDER_NOT_CANCELABLE(HttpStatus.BAD_REQUEST, "대기 중인 주문만 취소할 수 있습니다."),
 
     //MENU
-    MENU_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 메뉴가 포함되어 있습니다."),
+    MENU_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 메뉴를 찾을 수 없습니다."),
     MENU_SOLD_OUT(HttpStatus.BAD_REQUEST, "품절된 메뉴입니다."),
+    MENU_DUPLICATE_NAME(HttpStatus.BAD_REQUEST, "이미 등록된 메뉴명입니다."),
 
     //POINT
     POINT_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "포인트가 부족합니다."),

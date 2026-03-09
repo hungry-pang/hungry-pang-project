@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.domain.menu.service;
 
+import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.common.exception.ServiceException;
 import com.example.hungrypangproject.domain.menu.dto.request.MenuCreateRequest;
 import com.example.hungrypangproject.domain.menu.dto.request.MenuStatusUpdateRequest;
@@ -7,8 +8,10 @@ import com.example.hungrypangproject.domain.menu.dto.request.MenuUpdateRequest;
 import com.example.hungrypangproject.domain.menu.dto.response.MenuResponse;
 import com.example.hungrypangproject.domain.menu.entity.Menu;
 import com.example.hungrypangproject.domain.menu.entity.MenuStatus;
+import com.example.hungrypangproject.domain.menu.exception.MenuException;
 import com.example.hungrypangproject.domain.menu.repository.MenuRepository;
 import com.example.hungrypangproject.domain.store.entity.Store;
+import com.example.hungrypangproject.domain.store.exception.StoreException;
 import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -47,7 +50,7 @@ public class MenuService {
         Store store = getStoreEntity(storeId);
 
         if (menuRepository.existsByStoreIdAndName(storeId, request.getName())) {
-            throw new ServiceException(HttpStatus.BAD_REQUEST, "이미 등록된 메뉴명입니다.");
+            throw new MenuException(ErrorCode.MENU_DUPLICATE_NAME);
         }
 
         Menu menu = Menu.create(
@@ -93,17 +96,17 @@ public class MenuService {
 
     private Menu getMenuEntity(Long menuId) {
         return menuRepository.findById(menuId)
-                .orElseThrow(() -> new ServiceException(HttpStatus.NOT_FOUND, "해당 메뉴를 찾을 수 없습니다."));
+                .orElseThrow(() -> new MenuException(ErrorCode.MENU_NOT_FOUND));
     }
 
     private Store getStoreEntity(Long storeId) {
         return storeRepository.findById(storeId)
-                .orElseThrow(() -> new ServiceException(HttpStatus.NOT_FOUND, "해당 식당을 찾을 수 없습니다."));
+                .orElseThrow(() -> new StoreException(ErrorCode.STORE_NOT_FOUND));
     }
 
     private void validateStoreExists(Long storeId) {
         if (!storeRepository.existsById(storeId)) {
-            throw new ServiceException(HttpStatus.NOT_FOUND, "해당 식당을 찾을 수 없습니다.");
+            throw new StoreException(ErrorCode.STORE_NOT_FOUND);
         }
     }
 }
