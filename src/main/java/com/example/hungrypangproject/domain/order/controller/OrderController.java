@@ -3,12 +3,15 @@ package com.example.hungrypangproject.domain.order.controller;
 import com.example.hungrypangproject.common.dto.ApiResponse;
 import com.example.hungrypangproject.domain.order.dto.request.CreateOrderRequest;
 import com.example.hungrypangproject.domain.order.dto.response.CreateOrderResponse;
+import com.example.hungrypangproject.domain.order.dto.response.OrderListResponse;
 import com.example.hungrypangproject.domain.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -32,5 +35,12 @@ public class OrderController {
     ){
         orderService.cancelOrder(orderId, userId);
         return ApiResponse.ok();
+    }
+
+    @GetMapping
+    public ApiResponse<List<OrderListResponse>> getMyOrders(
+            @RequestParam Long userId
+    ) {
+        return ApiResponse.ok(orderService.getOrders(userId));
     }
 }

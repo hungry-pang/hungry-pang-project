@@ -9,6 +9,7 @@ import com.example.hungrypangproject.domain.menu.repository.MenuRepository;
 import com.example.hungrypangproject.domain.order.dto.request.CreateOrderRequest;
 import com.example.hungrypangproject.domain.order.dto.request.OrderItemRequest;
 import com.example.hungrypangproject.domain.order.dto.response.CreateOrderResponse;
+import com.example.hungrypangproject.domain.order.dto.response.OrderListResponse;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import com.example.hungrypangproject.domain.order.entity.OrderItem;
 import com.example.hungrypangproject.domain.order.exception.OrderException;
@@ -114,11 +115,21 @@ public class OrderService {
         return CreateOrderResponse.from(order, orderItems);
     }
 
+    //주문 취소
     @Transactional
     public void cancelOrder(Long userId, Long orderId) {
         Order order = orderRepostory.findById(orderId).orElseThrow(
                 () -> new OrderException(ErrorCode.ORDER_NOT_FOUND)
         );
         order.cancel(userId);
+    }
+
+    //주문 조회
+    @Transactional(readOnly = true)
+    public List<OrderListResponse> getOrders(Long userId) {
+        List<Order> orders = orderRepostory.findAllByMemberIdWithItems(userId);
+        return orders.stream()
+                .map(order -> OrderListResponse.from(order, order.getOrderItems()))
+                .toList();
     }
 }
