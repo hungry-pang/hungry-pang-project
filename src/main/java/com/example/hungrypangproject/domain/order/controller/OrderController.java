@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.domain.order.controller;
 
+import com.example.hungrypangproject.common.dto.ApiResponse;
 import com.example.hungrypangproject.domain.order.dto.request.CreateOrderRequest;
 import com.example.hungrypangproject.domain.order.dto.response.CreateOrderResponse;
 import com.example.hungrypangproject.domain.order.service.OrderService;
@@ -11,25 +12,25 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping("/api/orders")
 public class OrderController {
     private final OrderService orderService;
 
-    @PostMapping("/orders")
-    public ResponseEntity<CreateOrderResponse> createOrder(
+    @PostMapping
+    public ApiResponse<CreateOrderResponse> createOrder(
             @RequestBody CreateOrderRequest request,
             @RequestParam Long userId
     ) {
         CreateOrderResponse response = orderService.save(userId, request);
-        return ResponseEntity.ok(response);
+        return ApiResponse.created(response);
     }
 
-    @PatchMapping("/orders/{orderId}/cancel")
-    public ResponseEntity<Void>  cancelOrder(
+    @PatchMapping("/{orderId}/cancel")
+    public ApiResponse<Void>  cancelOrder(
             @PathVariable Long orderId,
             @RequestParam Long userId
     ){
         orderService.cancelOrder(orderId, userId);
-        return ResponseEntity.ok().build();
+        return ApiResponse.ok();
     }
 }

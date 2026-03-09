@@ -1,7 +1,9 @@
 package com.example.hungrypangproject.domain.order.entity;
 
 import com.example.hungrypangproject.common.entity.BaseEntity;
+import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.domain.member.entity.Member;
+import com.example.hungrypangproject.domain.order.exception.OrderException;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -65,10 +67,10 @@ public class Order extends BaseEntity {
 
     public void cancel(Long userId) {
         if(!this.member.getMemberId().equals(userId)){
-            throw new IllegalStateException("본인 주문만 취소");
+            throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
         }
         if(this.orderStatus != OrderStatus.WATING){
-            throw new IllegalStateException("대기 중인 주문만 취소 가능");
+            throw new OrderException(ErrorCode.ORDER_NOT_CANCELABLE);
         }
         this.orderStatus = OrderStatus.REFUNDED;
     }
