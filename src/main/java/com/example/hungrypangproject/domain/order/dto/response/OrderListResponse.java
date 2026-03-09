@@ -12,34 +12,33 @@ import java.util.List;
 @Getter
 public class OrderListResponse {
     private final Long id;
-    private final String orderNum;
+    private final String storeName;
+    private final String menus;
     private final BigDecimal totalPrice;
-    private final OrderStatus status;
+    private final OrderStatus orderStatus;
     private final LocalDateTime orderedAt;
-    private final List<String> menuNames;
 
-
-    private OrderListResponse(Long id, String orderNum, BigDecimal totalPrice, OrderStatus status, LocalDateTime orderedAt, List<String> menuNames) {
+    private OrderListResponse(Long id, String storeName, String menus, BigDecimal totalPrice, OrderStatus orderStatus, LocalDateTime orderedAt) {
         this.id = id;
-        this.orderNum = orderNum;
+        this.storeName = storeName;
+        this.menus = menus;
         this.totalPrice = totalPrice;
-        this.status = status;
+        this.orderStatus = orderStatus;
         this.orderedAt = orderedAt;
-        this.menuNames = menuNames;
     }
-
-    public static OrderListResponse from(Order order, List<OrderItem> orderItems) {
-        List<String> menuNames = orderItems.stream()
-                .map(OrderItem::getName)
-                .toList();
+    public static OrderListResponse from(Order order) {
+        List<OrderItem> orderItems = order.getOrderItems();
+        String menus = orderItems.get(0).getName();
+        if(orderItems.size() > 1) {
+            menus += "외" + (orderItems.size() - 1)+ "건";
+        }
         return new OrderListResponse(
                 order.getId(),
-                order.getOrderNum().toString(),
+                order.getStore().getStoreName(),
+                menus,
                 order.getTotalPrice(),
                 order.getOrderStatus(),
-                order.getOrderAt(),
-                menuNames
+                order.getOrderAt()
         );
     }
-
 }

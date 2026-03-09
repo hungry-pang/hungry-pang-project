@@ -4,9 +4,9 @@ import lombok.Getter;
 
 @Getter
 public enum OrderStatus {
-    WATING("WATING", "주문 대기"),
-    PREPARING("PREPARING", "준비"),
-    COMPLETED("COMPLETED", "주문 완료"),
+    WATING("WATING", "주문 확인"),
+    PREPARING("PREPARING", "조리 중"),
+    COMPLETED("COMPLETED", "조리 완료"),
     REFUNDED("REFUNDED", "환불");
 
     private final String statusCode;

@@ -80,4 +80,11 @@ public class Order extends BaseEntity {
         this.orderStatus = OrderStatus.REFUNDED;
     }
 
+    public void updateStatus(OrderStatus newStatus) {
+        if (this.orderStatus == OrderStatus.COMPLETED || this.orderStatus == OrderStatus.REFUNDED) {
+            throw new OrderException(ErrorCode.ORDER_NOT_CHANGEABLE);
+        }
+        this.orderStatus = newStatus;
+    }
+
 }

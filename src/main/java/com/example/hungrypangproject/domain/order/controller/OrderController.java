@@ -2,7 +2,9 @@ package com.example.hungrypangproject.domain.order.controller;
 
 import com.example.hungrypangproject.common.dto.ApiResponse;
 import com.example.hungrypangproject.domain.order.dto.request.CreateOrderRequest;
+import com.example.hungrypangproject.domain.order.dto.request.UpdateOrderStatusRequest;
 import com.example.hungrypangproject.domain.order.dto.response.CreateOrderResponse;
+import com.example.hungrypangproject.domain.order.dto.response.OrderDetailResponse;
 import com.example.hungrypangproject.domain.order.dto.response.OrderListResponse;
 import com.example.hungrypangproject.domain.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -38,9 +40,28 @@ public class OrderController {
     }
 
     @GetMapping
-    public ApiResponse<List<OrderListResponse>> getMyOrders(
+    public ApiResponse<List<OrderListResponse>> getOrders(
             @RequestParam Long userId
+    ){
+        List<OrderListResponse> list = orderService.getOrders(userId);
+        return ApiResponse.ok(list);
+    }
+
+    @GetMapping("/{orderId}")
+    public ApiResponse<OrderDetailResponse> getOneOrder(
+            @RequestParam Long userId,
+            @PathVariable Long orderId
     ) {
-        return ApiResponse.ok(orderService.getOrders(userId));
+        return ApiResponse.ok(orderService.getOneOrder(userId, orderId));
+    }
+
+    @PatchMapping("/{orderId}/status")
+    public ApiResponse<Void> updateOrderStatus(
+            @PathVariable Long orderId,
+            @RequestParam Long userId,
+            @RequestBody UpdateOrderStatusRequest request
+    ) {
+        orderService.updateOrderStatus(userId, orderId, request);
+        return ApiResponse.ok();
     }
 }

@@ -8,7 +8,9 @@ import com.example.hungrypangproject.domain.menu.entity.MenuStatus;
 import com.example.hungrypangproject.domain.menu.repository.MenuRepository;
 import com.example.hungrypangproject.domain.order.dto.request.CreateOrderRequest;
 import com.example.hungrypangproject.domain.order.dto.request.OrderItemRequest;
+import com.example.hungrypangproject.domain.order.dto.request.UpdateOrderStatusRequest;
 import com.example.hungrypangproject.domain.order.dto.response.CreateOrderResponse;
+import com.example.hungrypangproject.domain.order.dto.response.OrderDetailResponse;
 import com.example.hungrypangproject.domain.order.dto.response.OrderListResponse;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import com.example.hungrypangproject.domain.order.entity.OrderItem;
@@ -38,6 +40,7 @@ public class OrderService {
     private final MenuRepository menuRepository;
     private final OrderItemRepository orderItemRepository;
 
+    //주문 시 재고 차감 로직 구현 전
     @Transactional
     public CreateOrderResponse save(Long userId, CreateOrderRequest request) {
         Store store = storeRepository.findById(request.getStoreId()).orElseThrow(
@@ -124,12 +127,38 @@ public class OrderService {
         order.cancel(userId);
     }
 
-    //주문 조회
+    //주문 목록 조회
     @Transactional(readOnly = true)
     public List<OrderListResponse> getOrders(Long userId) {
         List<Order> orders = orderRepostory.findAllByMemberIdWithItems(userId);
         return orders.stream()
-                .map(order -> OrderListResponse.from(order, order.getOrderItems()))
+                .map(OrderListResponse::from)
                 .toList();
     }
+
+    //주문 단건 조회
+    @Transactional(readOnly = true)
+    public OrderDetailResponse getOneOrder(Long userId, Long orderId) {
+       Order order = orderRepostory.findByIdWithItems(orderId).orElseThrow(
+               () -> new OrderException(ErrorCode.ORDER_NOT_FOUND)
+       );
+       if(!order.getMember().getMemberId().equals(userId)){
+           throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+       }
+       return OrderDetailResponse.from(order, order.getOrderItems());
+
+    }
+
+    @Transactional
+    public void updateOrderStatus(Long storeOwnerId, Long orderId, UpdateOrderStatusRequest request) {
+        Order order = orderRepostory.findById(orderId).orElseThrow(
+                () -> new OrderException(ErrorCode.ORDER_NOT_FOUND)
+        );
+//        // 본인 가게 주문인지 확인(인증 인가 구현시 수정)
+//        if (!order.getStore().getOwner().getId().equals(storeOwnerId)) {
+//            throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+//        }
+        order.updateStatus(request.getOrderStatus());
+    }
+
 }

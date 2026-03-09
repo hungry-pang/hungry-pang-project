@@ -38,11 +38,11 @@ public class JwtUtil {
     }
 
     // Access token 생성
-    public String createAccessToken(String email, MemberRole role) {
+    public String createAccessToken(String email/*, MemberRole role*/) {
         Date now = new Date();
         return BEARER_PREFIX + Jwts.builder()
                 .subject(email)
-                .claim("role", role.name())
+                //.claim("role", role.name())
                 .claim("type", "ACCESS")
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + ACCESS_TOKEN_TIME))
