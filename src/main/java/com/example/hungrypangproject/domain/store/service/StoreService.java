@@ -8,6 +8,7 @@ import com.example.hungrypangproject.domain.store.dto.request.StoreUpdateRequest
 import com.example.hungrypangproject.domain.store.dto.response.StoreResponse;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import com.example.hungrypangproject.domain.store.entity.StoreStatus;
+import com.example.hungrypangproject.domain.store.exception.StoreException;
 import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -84,6 +85,6 @@ public class StoreService {
     // 식당 조회 공통 메서드 (없으면 예외 발생)
     private Store findStoreById(Long storeId) {
         return storeRepository.findById(storeId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.STORE_NOT_FOUND));//에러 도메인별 관리 논의 후 수정
+                .orElseThrow(() -> new StoreException(ErrorCode.STORE_NOT_FOUND));
     }
 }

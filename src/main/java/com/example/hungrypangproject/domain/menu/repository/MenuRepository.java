@@ -6,5 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface MenuRepository extends JpaRepository<Menu, Long> {
-    List<Menu> findByStoreId(Long storeId);
+    List<Menu> findAllByStoreIdOrderByCreatedAtDesc(Long storeId);
+
+    boolean existsByStoreIdAndName(Long storeId, String name);
 }
