@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.domain.order.entity;
 
+import com.example.hungrypangproject.common.entity.BaseEntity;
 import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import jakarta.persistence.*;
@@ -16,7 +17,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "orders")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Order {
+public class Order extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -60,6 +61,16 @@ public class Order {
         order.member = member;
         order.store = store;
         return order;
+    }
+
+    public void cancel(Long userId) {
+        if(!this.member.getMemberId().equals(userId)){
+            throw new IllegalStateException("본인 주문만 취소");
+        }
+        if(this.orderStatus != OrderStatus.WATING){
+            throw new IllegalStateException("대기 중인 주문만 취소 가능");
+        }
+        this.orderStatus = OrderStatus.REFUNDED;
     }
 
 }
