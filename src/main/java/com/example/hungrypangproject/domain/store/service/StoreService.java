@@ -84,6 +84,6 @@ public class StoreService {
     // 식당 조회 공통 메서드 (없으면 예외 발생)
     private Store findStoreById(Long storeId) {
         return storeRepository.findById(storeId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.STORE_NOT_FOUND.getStatus(), ErrorCode.STORE_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ServiceException(ErrorCode.STORE_NOT_FOUND));//에러 도메인별 관리 논의 후 수정
     }
 }
