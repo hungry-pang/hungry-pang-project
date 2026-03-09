@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -17,6 +18,8 @@ public class MenuResponse {
     private BigDecimal price;
     private Long stock;
     private MenuStatus status;
+    private LocalDateTime createdAt;
+    private LocalDateTime modifiedAt;
 
     public static MenuResponse from(Menu menu) {
         return MenuResponse.builder()
@@ -26,6 +29,8 @@ public class MenuResponse {
                 .price(menu.getPrice())
                 .stock(menu.getStock())
                 .status(menu.getStatus())
+                .createdAt(menu.getCreatedAt())
+                .modifiedAt(menu.getModifiedAt())
                 .build();
     }
 }
