@@ -19,16 +19,12 @@ public class Review extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @JoinColumn(name = "store_id", nullable = false)
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "store_id")
     private Store store;
 
-    @JoinColumn(name = "order_id", nullable = false, unique = true)
-    @OneToOne(fetch = FetchType.LAZY)
-    private Order order;
-
-    @JoinColumn(name = "user_id", nullable = false)
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "user_id")
     private Member member;
 
     @Column(nullable = false, length = 20)
@@ -44,21 +40,31 @@ public class Review extends BaseEntity {
     @Column(nullable = false)
     private ReviewStatus status;
 
-    public Review(Store store, Order order, Member member, String name, Integer rating, String content, ReviewStatus status) {
-        this.store = store;
-        this.order = order;
-        this.member = member;
-        this.name = name;
-        this.rating = rating;
-        this.content = content;
-        this.status = status;
+    public static Review create(
+            Store store,
+            Order order,
+            Member member,
+            String name,
+            Integer rating,
+            String content
+    ) {
+        Review review = new Review();
+        review.store = store;
+        review.member = member;
+        review.name = name;
+        review.rating = rating;
+        review.content = content;
+        review.status = ReviewStatus.EXPOSED;
+        return review;
     }
 
+    // 리뷰 수정
     public void update(String content, Integer rating) {
         this.content = content;
         this.rating = rating;
     }
 
+    // 리뷰 상태 변경
     public void updateStatus(ReviewStatus status) {
         this.status = status;
     }
