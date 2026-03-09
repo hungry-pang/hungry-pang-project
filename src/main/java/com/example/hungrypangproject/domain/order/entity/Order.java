@@ -1,6 +1,9 @@
 package com.example.hungrypangproject.domain.order.entity;
 
+import com.example.hungrypangproject.common.entity.BaseEntity;
+import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.domain.member.entity.Member;
+import com.example.hungrypangproject.domain.order.exception.OrderException;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -16,7 +19,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "orders")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Order {
+public class Order extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -60,6 +63,16 @@ public class Order {
         order.member = member;
         order.store = store;
         return order;
+    }
+
+    public void cancel(Long userId) {
+        if(!this.member.getMemberId().equals(userId)){
+            throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+        }
+        if(this.orderStatus != OrderStatus.WATING){
+            throw new OrderException(ErrorCode.ORDER_NOT_CANCELABLE);
+        }
+        this.orderStatus = OrderStatus.REFUNDED;
     }
 
 }
