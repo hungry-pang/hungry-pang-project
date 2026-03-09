@@ -32,8 +32,17 @@ public class Webhook {
         this.webhookId = webhookId;
         this.paymentId = paymentId;
         this.eventStatus = eventStatus;
-        this.status = WebhookStatus.RECEIVED;
-        this.receivedAt = receivedAt;
+        this.status = status != null ? status : WebhookStatus.RECEIVED;
+        this.receivedAt = receivedAt != null ? receivedAt : LocalDateTime.now();
+    }
 
+    // Webhook 처리 완료
+    public void markAsProcessed() {
+        this.status = WebhookStatus.PROCESSED;
+    }
+
+    // Webhook 처리 실패
+    public void markAsFailed() {
+        this.status = WebhookStatus.FAILED;
     }
 }

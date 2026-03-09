@@ -18,8 +18,8 @@ public class Menu extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @JoinColumn(name = "store_id", nullable = false)
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "store_id")
     private Store store;
 
     @Column(nullable = false, length = 20)
@@ -35,20 +35,30 @@ public class Menu extends BaseEntity {
     @Column(nullable = false)
     private MenuStatus status;
 
-    public Menu(Store store, String name, BigDecimal price, Long stock, MenuStatus status) {
-        this.store = store;
-        this.name = name;
-        this.price = price;
-        this.stock = stock;
-        this.status = status;
+    public static Menu create(
+            Store store,
+            String name,
+            BigDecimal price,
+            Long stock,
+            MenuStatus status
+    ) {
+        Menu menu = new Menu();
+        menu.store = store;
+        menu.name = name;
+        menu.price = price;
+        menu.stock = stock;
+        menu.status = status;
+        return menu;
     }
 
+    // 메뉴 수정
     public void update(String name, BigDecimal price, Long stock) {
         this.name = name;
         this.price = price;
         this.stock = stock;
     }
 
+    // 메뉴 상태 변경
     public void updateStatus(MenuStatus status) {
         this.status = status;
     }
