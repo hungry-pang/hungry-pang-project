@@ -37,12 +37,30 @@ public class Payment {
     private PaymentStatus status;
 
     @Builder
-    public Payment(String dbPaymentId, String paymentId, Order order, BigDecimal totalAmount, BigDecimal pointsToUse) {
+    public Payment(String dbPaymentId, String paymentId, Order order, BigDecimal totalAmount, BigDecimal pointsToUse, PaymentStatus status) {
         this.dbPaymentId = dbPaymentId;
         this.paymentId = paymentId;
         this.order = order;
         this.totalAmount = totalAmount;
         this.pointsToUse = pointsToUse;
-        this.status = getStatus();
+        this.status = status != null ? status : PaymentStatus.PENDING;
+    }
+
+    // 상태 변경 메서드
+    public void updateStatus(PaymentStatus status) {
+        this.status = status;
+    }
+
+    public void completePayment(String paymentId) {
+        this.paymentId = paymentId;
+        this.status = PaymentStatus.PAID;
+    }
+
+    public void failPayment() {
+        this.status = PaymentStatus.FAIL;
+    }
+
+    public void refund() {
+        this.status = PaymentStatus.REFUND;
     }
 }

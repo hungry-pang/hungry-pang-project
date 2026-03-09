@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.domain.refund.entity;
 
+import com.example.hungrypangproject.domain.payment.entity.Payment;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -19,12 +20,15 @@ public class Refund {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long paymentId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id", nullable = false)
+    private Payment payment;
 
     private BigDecimal refundAmount;
 
     private String reason;
 
+    @Enumerated(EnumType.STRING)
     private RefundStatus status;
 
     // PortOne에서 반환하는 환불 ID
@@ -33,13 +37,25 @@ public class Refund {
     private LocalDateTime refundedAt;
 
     @Builder
-    private Refund(Long paymentId, BigDecimal refundAmount, String reason, RefundStatus status, String portOneRefundId, String refundGroupId) {
-        this.paymentId = paymentId;
+    private Refund(Payment payment, BigDecimal refundAmount, String reason, RefundStatus status, String portOneRefundId, String refundGroupId) {
+        this.payment = payment;
         this.refundAmount = refundAmount;
         this.reason = reason;
-        this.status = status;
+        this.status = status != null ? status : RefundStatus.PENDING;
         this.portOneRefundId = portOneRefundId;
         this.refundGroupId = refundGroupId;
         this.refundedAt = LocalDateTime.now();
+    }
+
+    // 환불 완료 처리
+    public void completeRefund(String portOneRefundId) {
+        this.portOneRefundId = portOneRefundId;
+        this.status = RefundStatus.COMPLETED;
+        this.refundedAt = LocalDateTime.now();
+    }
+
+    // 환불 실패 처리
+    public void failRefund() {
+        this.status = RefundStatus.FAILED;
     }
 }

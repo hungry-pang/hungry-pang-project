@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: hungry-pang-project
+
+portone:
+  api:
+    key: ${PORTONE_API_KEY}
+    secret: ${PORTONE_API_SECRET}
