@@ -91,7 +91,7 @@ public class OrderService {
             Member findMember = memberRepository.findById(userId).orElseThrow(
                     () -> new OrderException(ErrorCode.MEMBER_NOT_FOUND)
             );
-            if (new BigDecimal(findMember.getPoint()).compareTo(request.getUsedPoint()) < 0) {// compareTo 앞 < 뒷 -> -1 반환, 앞 == 뒤 -> 0 반환, 앞 > 뒤 -> 1반환
+            if (new BigDecimal(findMember.getTotalPoint()).compareTo(request.getUsedPoint()) < 0) {// compareTo 앞 < 뒷 -> -1 반환, 앞 == 뒤 -> 0 반환, 앞 > 뒤 -> 1반환
                 throw new OrderException(ErrorCode.POINT_NOT_ENOUGH);
             }
 
