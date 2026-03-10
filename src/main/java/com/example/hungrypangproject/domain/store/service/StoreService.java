@@ -25,8 +25,11 @@ public class StoreService {
 
     // 식당 등록
     public StoreResponse createStore(StoreCreateRequest request, Member member) {
+
+        // 판매자 권한 검증
         validateSeller(member);
 
+        // 식당 생성
         Store store = Store.create(
                 request.getStoreName(),
                 request.getDeliveryFee(),
@@ -34,22 +37,28 @@ public class StoreService {
                 member
         );
 
+        // DB 저장
         Store savedStore = storeRepository.save(store);
 
+        // 응답 DTO 변환
         return StoreResponse.from(savedStore);
     }
 
-    // 식당 목록 조회
+    // 식당 목록 조회 (검색 기능)
     @Transactional(readOnly = true)
     public List<StoreResponse> getStores(String keyword) {
         List<Store> stores;
 
+        // 검색어가 없으면 전체 조회
         if (keyword == null || keyword.isBlank()) {
             stores = storeRepository.findAll();
-        } else {
+        }
+        // 검색어가 있으면 이름 기준 검색
+        else {
             stores = storeRepository.findByStoreNameContaining(keyword);
         }
 
+        // Entity → Response DTO 변환
         return stores.stream()
                 .map(StoreResponse::from)
                 .toList();
@@ -64,11 +73,17 @@ public class StoreService {
 
     // 식당 정보 수정
     public void updateStore(Long storeId, StoreUpdateRequest request, Member member) {
+
+        // 판매자 권한 검증
         validateSeller(member);
 
+        // 식당 조회
         Store store = findStoreById(storeId);
+
+        // 본인 식당인지 검증
         validateStoreOwner(store, member);
 
+        // 식당 정보 수정
         store.update(
                 request.getStoreName(),
                 request.getDeliveryFee(),
@@ -78,38 +93,53 @@ public class StoreService {
 
     // 식당 영업 상태 변경
     public void updateStoreStatus(Long storeId, StoreStatusUpdateRequest request, Member member) {
+
+        // 판매자 권한 검증
         validateSeller(member);
 
+        // 식당 조회
         Store store = findStoreById(storeId);
+
+        // 본인 식당인지 검증
         validateStoreOwner(store, member);
 
+        // 영업 상태 변경
         store.updateStatus(request.getStatus());
     }
 
     // 식당 삭제
     public void deleteStore(Long storeId, Member member) {
+
+        // 판매자 권한 검증
         validateSeller(member);
 
+        // 식당 조회
         Store store = findStoreById(storeId);
+
+        // 본인 식당인지 검증
         validateStoreOwner(store, member);
 
+        // 식당 삭제
         storeRepository.delete(store);
     }
 
-    // 식당 조회 공통 메서드 (없으면 예외 발생)
+    // 식당 조회 공통 메서드
+    // 존재하지 않으면 예외 발생
     private Store findStoreById(Long storeId) {
         return storeRepository.findById(storeId)
                 .orElseThrow(() -> new StoreException(ErrorCode.STORE_NOT_FOUND));
     }
 
     // 판매자 권한 체크
+    // SELLER 권한이 아니면 예외 발생
     private void validateSeller(Member member) {
         if (member.getRole() != MemberRoleEnum.ROLE_SELLER) {
             throw new StoreException(ErrorCode.STORE_ONLY_SELLER);
         }
     }
 
-    // 본인 식당인지 체크
+    // 본인 식당인지 검증
+    // 식당 owner와 요청한 사용자가 다르면 예외 발생
     private void validateStoreOwner(Store store, Member member) {
         if (!store.isOwner(member.getMemberId())) {
             throw new StoreException(ErrorCode.STORE_FORBIDDEN);

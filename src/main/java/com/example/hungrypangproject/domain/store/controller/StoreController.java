@@ -27,21 +27,26 @@ public class StoreController {
             @Valid @RequestBody StoreCreateRequest request,
             @AuthenticationPrincipal MemberUserDetails userDetails
     ) {
+        // 로그인한 사용자 정보 가져오기
         StoreResponse response = storeService.createStore(request, userDetails.getMember());
+
+        // 생성 성공 응답 반환 (201)
         return ApiResponse.created(response);
     }
 
-    // 식당 목록 조회
+    // 식당 목록 조회 (검색 기능)
     @GetMapping
     public ApiResponse<List<StoreResponse>> getStores(
             @RequestParam(required = false) String keyword
     ) {
+        // keyword가 있으면 검색, 없으면 전체 조회
         return ApiResponse.ok(storeService.getStores(keyword));
     }
 
     // 식당 단건 조회
     @GetMapping("/{storeId}")
     public ApiResponse<StoreResponse> getStore(@PathVariable Long storeId) {
+        // storeId로 식당 조회
         return ApiResponse.ok(storeService.getStore(storeId));
     }
 
@@ -52,7 +57,9 @@ public class StoreController {
             @Valid @RequestBody StoreUpdateRequest request,
             @AuthenticationPrincipal MemberUserDetails userDetails
     ) {
+        // 로그인한 판매자가 본인 식당 정보 수정
         storeService.updateStore(storeId, request, userDetails.getMember());
+
         return ApiResponse.ok();
     }
 
@@ -63,7 +70,9 @@ public class StoreController {
             @Valid @RequestBody StoreStatusUpdateRequest request,
             @AuthenticationPrincipal MemberUserDetails userDetails
     ) {
+        // OPEN / CLOSED 등 영업 상태 변경
         storeService.updateStoreStatus(storeId, request, userDetails.getMember());
+
         return ApiResponse.ok();
     }
 
@@ -73,7 +82,10 @@ public class StoreController {
             @PathVariable Long storeId,
             @AuthenticationPrincipal MemberUserDetails userDetails
     ) {
+        // 로그인한 판매자가 본인 식당 삭제
         storeService.deleteStore(storeId, userDetails.getMember());
+
+        // 삭제 성공 응답 (204)
         return ApiResponse.noContent();
     }
 }
