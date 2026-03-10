@@ -28,6 +28,7 @@ public enum ErrorCode {
     //POINT
     POINT_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "포인트가 부족합니다."),
     POINT_EXCEED_LIMIT(HttpStatus.BAD_REQUEST, "포인트는 결제금액의 10% 이하만 사용 가능합니다."),
+    POINT_NOT_HOLDING(HttpStatus.BAD_REQUEST, "적립 대기중인 포인트가 없습니다."),
 
     //MEMBER
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을수 없습니다."),
