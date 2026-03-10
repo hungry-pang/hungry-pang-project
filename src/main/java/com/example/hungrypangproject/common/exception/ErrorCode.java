@@ -48,6 +48,8 @@ public enum ErrorCode {
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 일치하지 않습니다."),
     PAYMENT_INFO_MISMATCH(HttpStatus.BAD_REQUEST, "결제 정보가 일치하지 않습니다."),
     PAYMENT_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "결제가 완료되지 않았습니다."),
+    PAYMENT_INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "최종 결제 금액은 0보다 작을 수 없습니다."),
+    PAYMENT_DUPLICATE(HttpStatus.BAD_REQUEST, "이미 진행 중이거나 완료된 결제가 있습니다."),
     PORTONE_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "PortOne API 호출 중 오류가 발생했습니다."),
 
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST,"비밀번호가 일치하지 않습니다."),

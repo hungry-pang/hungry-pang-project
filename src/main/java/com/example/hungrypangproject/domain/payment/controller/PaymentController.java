@@ -29,13 +29,8 @@ public class PaymentController {
 
         log.info("결제 준비 요청 - orderId: {}, amount: {}", request.getOrderId(), request.getAmount());
 
-        try {
-            PaymentPrepareResponse response = paymentService.preparePayment(request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            log.error("결제 준비 실패: {}", e.getMessage());
-            throw e;
-        }
+        PaymentPrepareResponse response = paymentService.preparePayment(request);
+        return ResponseEntity.ok(response);
     }
 
     /**

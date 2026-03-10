@@ -46,20 +46,21 @@ public class PaymentService {
 
         // 1. 주문 조회
         Order order = orderRepository.findById(request.getOrderId())
-                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다. orderId: " + request.getOrderId()));
+                .orElseThrow(() -> new PaymentException(ErrorCode.ORDER_NOT_FOUND));
 
         // 2. 결제 금액 검증
         BigDecimal pointsToUse = request.getPointsToUse() != null ? request.getPointsToUse() : BigDecimal.ZERO;
         BigDecimal finalAmount = request.getAmount().subtract(pointsToUse);
 
         if (finalAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("최종 결제 금액은 0보다 작을 수 없습니다.");
+            log.error("최종 결제 금액 음수 - finalAmount: {}", finalAmount);
+            throw new PaymentException(ErrorCode.PAYMENT_INVALID_AMOUNT);
         }
 
         // 주문 금액과 요청 금액이 일치하는지 검증
         if (order.getTotalPrice().compareTo(request.getAmount()) != 0) {
             log.error("주문 금액 불일치 - 주문금액: {}, 요청금액: {}", order.getTotalPrice(), request.getAmount());
-            throw new IllegalArgumentException("주문 금액이 일치하지 않습니다.");
+            throw new PaymentException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
         // 3. 중복 결제 방지 - 해당 주문에 대해 PENDING 또는 PAID 상태의 결제가 있는지 확인
@@ -70,7 +71,7 @@ public class PaymentService {
 
         if (hasActivePayment) {
             log.error("중복 결제 시도 - orderId: {}", request.getOrderId());
-            throw new IllegalStateException("이미 진행 중이거나 완료된 결제가 있습니다.");
+            throw new PaymentException(ErrorCode.PAYMENT_DUPLICATE);
         }
 
         // 4. 고유한 결제 ID 생성 (merchant_uid로 사용)
