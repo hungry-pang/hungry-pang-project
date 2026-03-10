@@ -7,7 +7,8 @@ public enum OrderStatus {
     WATING("WATING", "주문 확인"),
     PREPARING("PREPARING", "조리 중"),
     COMPLETED("COMPLETED", "조리 완료"),
-    REFUNDED("REFUNDED", "환불");
+    REFUNDED("REFUNDED", "환불"),
+    CANCELLED("CANCELLED", "주문 취소");
 
     private final String statusCode;
     private final String description;
