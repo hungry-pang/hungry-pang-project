@@ -1,13 +1,13 @@
 package com.example.hungrypangproject.domain.store.service;
 
 import com.example.hungrypangproject.common.exception.ErrorCode;
-import com.example.hungrypangproject.common.exception.ServiceException;
+import com.example.hungrypangproject.domain.member.entity.Member;
+import com.example.hungrypangproject.domain.member.entity.MemberRoleEnum;
 import com.example.hungrypangproject.domain.store.dto.request.StoreCreateRequest;
 import com.example.hungrypangproject.domain.store.dto.request.StoreStatusUpdateRequest;
 import com.example.hungrypangproject.domain.store.dto.request.StoreUpdateRequest;
 import com.example.hungrypangproject.domain.store.dto.response.StoreResponse;
 import com.example.hungrypangproject.domain.store.entity.Store;
-import com.example.hungrypangproject.domain.store.entity.StoreStatus;
 import com.example.hungrypangproject.domain.store.exception.StoreException;
 import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +24,14 @@ public class StoreService {
     private final StoreRepository storeRepository;
 
     // 식당 등록
-    public StoreResponse createStore(StoreCreateRequest request) {
+    public StoreResponse createStore(StoreCreateRequest request, Member member) {
+        validateSeller(member);
+
         Store store = Store.create(
                 request.getStoreName(),
                 request.getDeliveryFee(),
-                request.getMinimumOrder()
+                request.getMinimumOrder(),
+                member
         );
 
         Store savedStore = storeRepository.save(store);
@@ -60,8 +63,11 @@ public class StoreService {
     }
 
     // 식당 정보 수정
-    public void updateStore(Long storeId, StoreUpdateRequest request) {
+    public void updateStore(Long storeId, StoreUpdateRequest request, Member member) {
+        validateSeller(member);
+
         Store store = findStoreById(storeId);
+        validateStoreOwner(store, member);
 
         store.update(
                 request.getStoreName(),
@@ -71,14 +77,22 @@ public class StoreService {
     }
 
     // 식당 영업 상태 변경
-    public void updateStoreStatus(Long storeId, StoreStatusUpdateRequest request) {
+    public void updateStoreStatus(Long storeId, StoreStatusUpdateRequest request, Member member) {
+        validateSeller(member);
+
         Store store = findStoreById(storeId);
+        validateStoreOwner(store, member);
+
         store.updateStatus(request.getStatus());
     }
 
     // 식당 삭제
-    public void deleteStore(Long storeId) {
+    public void deleteStore(Long storeId, Member member) {
+        validateSeller(member);
+
         Store store = findStoreById(storeId);
+        validateStoreOwner(store, member);
+
         storeRepository.delete(store);
     }
 
@@ -86,5 +100,19 @@ public class StoreService {
     private Store findStoreById(Long storeId) {
         return storeRepository.findById(storeId)
                 .orElseThrow(() -> new StoreException(ErrorCode.STORE_NOT_FOUND));
+    }
+
+    // 판매자 권한 체크
+    private void validateSeller(Member member) {
+        if (member.getRole() != MemberRoleEnum.ROLE_SELLER) {
+            throw new StoreException(ErrorCode.STORE_ONLY_SELLER);
+        }
+    }
+
+    // 본인 식당인지 체크
+    private void validateStoreOwner(Store store, Member member) {
+        if (!store.isOwner(member.getMemberId())) {
+            throw new StoreException(ErrorCode.STORE_FORBIDDEN);
+        }
     }
 }
