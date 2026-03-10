@@ -20,6 +20,8 @@ public enum ErrorCode {
     ORDER_CANCEL_FORBIDDEN(HttpStatus.FORBIDDEN, "본인 주문만 취소할 수 있습니다."),
     ORDER_BELOW_MINIMUM(HttpStatus.BAD_REQUEST, "최소 주문금액을 충족하지 않습니다."),
     ORDER_NOT_CANCELABLE(HttpStatus.BAD_REQUEST, "대기 중인 주문만 취소할 수 있습니다."),
+    ORDER_NOT_CHANGEABLE(HttpStatus.BAD_REQUEST, "이미 완료되거나 환불된 주문입니다."),
+    ORDER_STATUS_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 주문 상태입니다."),
 
     //MENU
     MENU_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 메뉴를 찾을 수 없습니다."),
@@ -33,6 +35,7 @@ public enum ErrorCode {
     //MEMBER
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을수 없습니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.NOT_FOUND, "중복된 이메일입니다."),
+
 
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST,"비밀번호가 일치하지 않습니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED,"유효하지 않은 JWT 토큰입니다."),

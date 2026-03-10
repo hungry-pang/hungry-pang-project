@@ -13,6 +13,8 @@ import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -49,6 +51,9 @@ public class Order extends BaseEntity {
     @JoinColumn(nullable = false, name = "store_id")
     private Store store;
 
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    private List<OrderItem> orderItems = new ArrayList<>();
+
     public static Order create(
             BigDecimal totalPrice,
             BigDecimal usedPoint,
@@ -73,6 +78,13 @@ public class Order extends BaseEntity {
             throw new OrderException(ErrorCode.ORDER_NOT_CANCELABLE);
         }
         this.orderStatus = OrderStatus.REFUNDED;
+    }
+
+    public void updateStatus(OrderStatus newStatus) {
+        if (this.orderStatus == OrderStatus.COMPLETED || this.orderStatus == OrderStatus.REFUNDED) {
+            throw new OrderException(ErrorCode.ORDER_NOT_CHANGEABLE);
+        }
+        this.orderStatus = newStatus;
     }
 
 }
