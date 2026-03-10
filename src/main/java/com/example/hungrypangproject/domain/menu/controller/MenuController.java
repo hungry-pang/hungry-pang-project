@@ -14,11 +14,21 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/menus")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class MenuController {
 
     private final MenuService menuService;
+
+    // 메뉴 등록
+    @PostMapping("/stores/{storeId}/menus")
+    public ResponseEntity<MenuResponse> createMenu(
+            @PathVariable Long storeId,
+            @Valid @RequestBody MenuCreateRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(menuService.createMenu(storeId, request));
+    }
 
     // 메뉴 목록 조회(식당별)
     @GetMapping("/stores/{storeId}/menus")
@@ -30,16 +40,6 @@ public class MenuController {
     @GetMapping("/menus/{menuId}")
     public ResponseEntity<MenuResponse> getMenu(@PathVariable Long menuId) {
         return ResponseEntity.ok(menuService.getMenu(menuId));
-    }
-
-    // 메뉴 등록
-    @PostMapping("/stores/{storeId}/menus")
-    public ResponseEntity<MenuResponse> createMenu(
-            @PathVariable Long storeId,
-            @Valid @RequestBody MenuCreateRequest request
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(menuService.createMenu(storeId, request));
     }
 
     // 메뉴 수정

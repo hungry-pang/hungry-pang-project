@@ -3,9 +3,9 @@ spring:
     name: hungry-pang-project
 
   datasource:
-    url: jdbc:mysql://localhost:3306/mysql-local
+    url: jdbc:mysql://localhost:3306/test
     username: root
-    password: 12345678
+    password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
