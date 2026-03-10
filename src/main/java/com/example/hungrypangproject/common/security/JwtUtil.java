@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.common.security;
 
+import com.example.hungrypangproject.domain.member.entity.MemberRoleEnum;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Slf4j(topic = "JwtUtil")
@@ -38,11 +40,11 @@ public class JwtUtil {
     }
 
     // Access token 생성
-    public String createAccessToken(String email/*, MemberRole role*/) {
+    public String createAccessToken(String email, MemberRoleEnum role) {
         Date now = new Date();
         return BEARER_PREFIX + Jwts.builder()
                 .subject(email)
-                //.claim("role", role.name())
+                .claim("role", role.name())
                 .claim("type", "ACCESS")
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + ACCESS_TOKEN_TIME))
