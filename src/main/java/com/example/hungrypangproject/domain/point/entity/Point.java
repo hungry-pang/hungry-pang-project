@@ -1,10 +1,13 @@
 package com.example.hungrypangproject.domain.point.entity;
 
+import com.example.hungrypangproject.common.entity.BaseEntity;
 import com.example.hungrypangproject.domain.member.entity.Member;
+import com.example.hungrypangproject.domain.order.entity.Order;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.aspectj.weaver.ast.Or;
 
 import java.time.LocalDateTime;
 
@@ -12,17 +15,20 @@ import java.time.LocalDateTime;
 @Getter
 @Table(name = "points")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Point {
+public class Point extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long orderId;
-
+    // 현재 총 포인트
     @Column(nullable = false)
     private Long currentlyPoint;
 
+    // 적립 포인트
+    @Column(nullable = false)
+    private Long earnPoint;
+
+    // 사용 포인트
     @Column(nullable = false)
     private Long usedPoint;
 
@@ -37,35 +43,39 @@ public class Point {
     private LocalDateTime expireAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
+    @JoinColumn(nullable = false, name = "member_id")
     private Member member;
 
-    private LocalDateTime createdAt;
-
-    private LocalDateTime deletedAt;
-
-    private LocalDateTime modifiedAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "order_id")
+    private Order order;
 
     public static Point register(
-            Long orderId,
             Long currentlyPoint,
+            Long earnPoint,
             Long usedPoint,
             PointEnum status,
             Member member,
-            LocalDateTime saveAt,
-            LocalDateTime expiredAt
+            Order order
     ) {
         Point point = new Point();
 
-        point.orderId = orderId;
-        point.currentlyPoint = currentlyPoint;
-        point.usedPoint = usedPoint;
+        point.currentlyPoint = (currentlyPoint != null) ? currentlyPoint:0L;
+        point.earnPoint = (earnPoint != null) ? earnPoint:0L;
+        point.usedPoint = (usedPoint != null) ? usedPoint:0L;
         point.status = status;
         point.member = member;
+        point.order = order;
         point.saveAt = LocalDateTime.now();
         point.expireAt = LocalDateTime.now().plusYears(1);
 
         return point;
     }
 
+    // 배달 완료 시 상태 변경
+    public void activate() {
+        if (this.status == PointEnum.HOLDING) {
+            this.status = PointEnum.SAVE;
+        }
+    }
 }

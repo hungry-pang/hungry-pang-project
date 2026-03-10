@@ -6,9 +6,7 @@ import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.order.exception.OrderException;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
@@ -21,6 +19,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "orders")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder // 포인트 테스트코드용 임시 붙여높음
+@AllArgsConstructor // 포인트 테스트코드용 임시 붙여놓음
 public class Order extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -87,4 +87,10 @@ public class Order extends BaseEntity {
         this.orderStatus = newStatus;
     }
 
+    // 포인트 사용 (총 금액 - 사용 포인트)
+    public BigDecimal getFinalPaymentAmount() {
+        BigDecimal total = (this.totalPrice != null) ? this.totalPrice : BigDecimal.ZERO;
+        BigDecimal used = (this.usedPoint != null) ? this.usedPoint : BigDecimal.ZERO;
+        return total.subtract(used);
+    }
 }

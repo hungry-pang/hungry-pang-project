@@ -1,17 +1,13 @@
 package com.example.hungrypangproject.domain.store.entity;
 
 import com.example.hungrypangproject.common.entity.BaseEntity;
-import com.example.hungrypangproject.domain.menu.entity.Menu;
-import com.example.hungrypangproject.domain.order.entity.Order;
-import com.example.hungrypangproject.domain.review.entity.Review;
+import com.example.hungrypangproject.domain.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Entity
@@ -36,16 +32,22 @@ public class Store extends BaseEntity {
     @Column(name = "minimum_order")
     private BigDecimal minimumOrder;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "member_id")
+    private Member seller;
+
     public static Store create(
             String storeName,
             BigDecimal deliveryFee,
-            BigDecimal minimumOrder
+            BigDecimal minimumOrder,
+            Member seller
     ) {
         Store store = new Store();
         store.storeName = storeName;
         store.deliveryFee = deliveryFee;
         store.status = StoreStatus.OPEN;
         store.minimumOrder = minimumOrder;
+        store.seller = seller;
         return store;
     }
 
@@ -57,5 +59,9 @@ public class Store extends BaseEntity {
 
     public void updateStatus(StoreStatus status) {
         this.status = status;
+    }
+
+    public boolean isOwner(Long memberId) {
+        return this.seller.getMemberId().equals(memberId);
     }
 }

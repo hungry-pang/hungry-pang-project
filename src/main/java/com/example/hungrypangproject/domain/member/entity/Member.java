@@ -55,7 +55,8 @@ public class Member extends BaseEntity {
         member.phoneNo = request.getPhoneNo();
         member.password = encodedPassword;
         member.point = 0L;
-        member.role = MemberRoleEnum.ROLE_USER;
+        // role 미입력 시 기본 USER 권한 설정
+        member.role = request.getRole() != null ? request.getRole() : MemberRoleEnum.ROLE_USER;
         member.totalPriceAmount = 0L;
         return member;
     }

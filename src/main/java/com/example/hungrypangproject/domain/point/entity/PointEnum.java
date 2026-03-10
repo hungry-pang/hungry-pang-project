@@ -5,8 +5,8 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 public enum PointEnum {
-    USE("USE","사용가능"),
-    HOLDING("HOLDING","대기중"),
+    USE("USE","사용 가능"),
+    HOLDING("HOLDING","누적 대기"),
     SAVE("SAVE","누적"),
     EXPIRE("EXPIRE","만료");
 
