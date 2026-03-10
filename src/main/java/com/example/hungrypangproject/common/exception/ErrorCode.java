@@ -46,6 +46,7 @@ public enum ErrorCode {
     REVIEW_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "한 주문에는 하나의 리뷰만 작성할 수 있습니다."),
     REVIEW_ORDER_FORBIDDEN(HttpStatus.FORBIDDEN, "본인의 주문에 대해서만 리뷰를 작성할 수 있습니다."),
     REVIEW_ORDER_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "주문 완료된 경우에만 리뷰를 작성할 수 있습니다."),
+    REVIEW_STATUS_FORBIDDEN(HttpStatus.FORBIDDEN, "관리자만 리뷰 상태를 변경할 수 있습니다."),
 
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
