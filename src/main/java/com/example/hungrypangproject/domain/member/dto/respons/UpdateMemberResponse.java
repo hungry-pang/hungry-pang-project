@@ -21,7 +21,7 @@ public class UpdateMemberResponse {
                 member.getNickname(),
                 member.getAddress(),
                 member.getPhoneNo(),
-                member.getPoint()
+                member.getTotalPoint()
         );
     }
 }

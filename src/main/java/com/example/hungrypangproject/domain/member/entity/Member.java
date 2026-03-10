@@ -1,18 +1,20 @@
 package com.example.hungrypangproject.domain.member.entity;
 
 import com.example.hungrypangproject.common.entity.BaseEntity;
+import com.example.hungrypangproject.common.exception.ErrorCode;
+import com.example.hungrypangproject.common.exception.ServiceException;
 import com.example.hungrypangproject.domain.member.dto.request.SaveMemberRequest;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@Builder
 @Table(name = "members")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class Member extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,7 +36,7 @@ public class Member extends BaseEntity {
     private String password;
 
     @Column(nullable = false)
-    private Long point;
+    private Long totalPoint;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -54,7 +56,7 @@ public class Member extends BaseEntity {
         member.address = request.getAddress();
         member.phoneNo = request.getPhoneNo();
         member.password = encodedPassword;
-        member.point = 0L;
+        member.totalPoint = 0L;
         member.role = MemberRoleEnum.ROLE_USER;
         member.totalPriceAmount = 0L;
         return member;
@@ -76,4 +78,22 @@ public class Member extends BaseEntity {
         this.role = role;
     }
 
+    // 포인트 적립 (배달 완료 후 적용)
+    public void addPoint(Long amount) {
+        if(amount == null || amount < 0) {
+            throw new ServiceException(ErrorCode.POINT_NOT_ENOUGH);
+        }
+        this.totalPoint += amount;
+    }
+
+    // 포인트 사용 (차감)
+    public void minusPoint(Long amount) {
+        if(amount == null || amount < 0) {
+            throw new ServiceException(ErrorCode.POINT_NOT_ENOUGH);
+        }
+        if(this.totalPoint < amount) {
+            throw new ServiceException(ErrorCode.POINT_EXCEED_LIMIT);
+        }
+        this.totalPoint -= amount;
+    }
 }
