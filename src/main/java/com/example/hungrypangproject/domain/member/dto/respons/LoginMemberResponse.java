@@ -1,6 +1,5 @@
 package com.example.hungrypangproject.domain.member.dto.respons;
 
-import com.example.hungrypangproject.domain.member.entity.Member;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

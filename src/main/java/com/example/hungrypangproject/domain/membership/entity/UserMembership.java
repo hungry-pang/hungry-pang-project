@@ -1,17 +1,17 @@
 package com.example.hungrypangproject.domain.membership.entity;
 
+import com.example.hungrypangproject.common.entity.BaseEntity;
+import com.example.hungrypangproject.domain.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Getter
 @Table(name = "userMembers")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserMembership {
+public class UserMembership extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userMembershipId;
@@ -19,27 +19,27 @@ public class UserMembership {
     @Column(nullable = false)
     private Long memberId;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "memberships")
+    @Column(nullable = false)
+    private Long totalPrice;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "memberships")
     private Membership membership;
 
-    @Column(nullable = false)
-    private Double totalAmount;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "members")
+    private Member member;
 
-    private LocalDateTime createdAt;
-
-    private LocalDateTime modifiedAt;
-
-    public static UserMembership userMembership (
+    public static UserMembership register (
             Long memberId,
             Membership membership,
-            Double totalAmount
+            Long totalPrice
     ) {
         UserMembership userMembership = new UserMembership();
 
         userMembership.memberId = memberId;
         userMembership.membership = membership;
-        userMembership.totalAmount =totalAmount;
+        userMembership.totalPrice =totalPrice;
 
         return userMembership;
     }
