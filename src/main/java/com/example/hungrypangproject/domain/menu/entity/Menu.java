@@ -1,6 +1,8 @@
 package com.example.hungrypangproject.domain.menu.entity;
 
 import com.example.hungrypangproject.common.entity.BaseEntity;
+import com.example.hungrypangproject.common.exception.ErrorCode;
+import com.example.hungrypangproject.domain.menu.exception.MenuException;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -61,5 +63,16 @@ public class Menu extends BaseEntity {
     // 메뉴 상태 변경
     public void updateStatus(MenuStatus status) {
         this.status = status;
+    }
+
+    // 재고 차감
+    public void decreaseStock(Long quantity) {
+        if (this.stock < quantity) {
+            throw new MenuException(ErrorCode.MENU_SOLD_OUT);
+        }
+        this.stock -= quantity;
+        if (this.stock == 0) {
+            this.status = MenuStatus.SOLDOUT;
+        }
     }
 }

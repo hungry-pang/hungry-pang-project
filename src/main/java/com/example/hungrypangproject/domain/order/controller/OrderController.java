@@ -39,7 +39,7 @@ public class OrderController {
             @AuthenticationPrincipal MemberUserDetails userDetails
     ){
         Long userId = userDetails.getMember().getMemberId();
-        orderService.cancelOrder(orderId, userId);
+        orderService.cancelOrder(userId,orderId);
         return ApiResponse.ok();
     }
 

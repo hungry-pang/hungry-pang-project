@@ -17,10 +17,10 @@ import java.util.UUID;
 
 @Getter
 @Entity
+@Builder
 @Table(name = "orders")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Builder // 포인트 테스트코드용 임시 붙여높음
-@AllArgsConstructor // 포인트 테스트코드용 임시 붙여놓음
+@AllArgsConstructor
 public class Order extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

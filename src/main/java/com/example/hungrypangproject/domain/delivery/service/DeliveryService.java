@@ -39,11 +39,11 @@ public class DeliveryService {
         }
 
         // RAIDER 목록 조회 후 랜덤 배정
-        List<Member> raiders = memberRepository.findAllByRole(MemberRoleEnum.ROLE_RAIDER);
-        if (raiders.isEmpty()) {
+        List<Member> riders = memberRepository.findAllByRole(MemberRoleEnum.ROLE_RAIDER);
+        if (riders.isEmpty()) {
             throw new DeliveryException(ErrorCode.RAIDER_NOT_FOUND);
         }
-        Member raider = raiders.get(new Random().nextInt(raiders.size()));
+        Member raider = riders.get(new Random().nextInt(riders.size()));
 
         // PENDING으로 생성
         Delivery delivery = Delivery.create(
