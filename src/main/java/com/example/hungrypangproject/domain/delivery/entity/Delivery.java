@@ -33,7 +33,7 @@ public class Delivery extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private DeliveryStatus deliveryStatus;
 
-    @Column(name = "pick_up_at", nullable = false)
+    @Column(name = "pick_up_at")
     private LocalDateTime pickupAt;
     @Column(name = "delivery_at")
     private LocalDateTime deliveryAt;
