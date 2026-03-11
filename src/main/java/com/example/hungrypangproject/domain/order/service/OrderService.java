@@ -17,11 +17,9 @@ import com.example.hungrypangproject.domain.order.dto.response.OrderDetailRespon
 import com.example.hungrypangproject.domain.order.dto.response.OrderListResponse;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import com.example.hungrypangproject.domain.order.entity.OrderItem;
-import com.example.hungrypangproject.domain.order.entity.OrderStatus;
 import com.example.hungrypangproject.domain.order.exception.OrderException;
 import com.example.hungrypangproject.domain.order.repository.OrderItemRepository;
-import com.example.hungrypangproject.domain.order.repository.OrderRepostory;
-import com.example.hungrypangproject.domain.point.entity.PointEnum;
+import com.example.hungrypangproject.domain.order.repository.OrderRepository;
 import com.example.hungrypangproject.domain.point.exception.PointException;
 import com.example.hungrypangproject.domain.point.repository.PointRepository;
 import com.example.hungrypangproject.domain.point.service.PointService;
@@ -42,7 +40,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OrderService {
-    private final OrderRepostory orderRepostory;
+    private final OrderRepository orderRepository;
     private final MemberRepository memberRepository;
     private final StoreRepository storeRepository;
     private final MenuRepository menuRepository;
@@ -51,11 +49,11 @@ public class OrderService {
     private final MembershipService membershipService;
     private final PointRepository pointRepository;
 
-    //주문 시 재고 차감 로직 구현 전
+
     @Transactional
     public CreateOrderResponse save(Long userId, CreateOrderRequest request) {
         Store store = storeRepository.findById(request.getStoreId()).orElseThrow(
-                () -> new StoreException(ErrorCode.STORE_NOT_FOUND) //store 오류 구현 후 수정
+                () -> new StoreException(ErrorCode.STORE_NOT_FOUND)
         );
         if (store.getStatus() != StoreStatus.OPEN) {
             throw new StoreException(ErrorCode.STORE_NOT_OPEN);
@@ -127,13 +125,14 @@ public class OrderService {
 
         Member member = memberRepository.getReferenceById(userId);
         Order order = Order.create(totalPrice, request.getUsedPoint(), member, store);
-        orderRepostory.save(order);
+        Order saveOrder = orderRepository.save(order);
 
         // 주문 상품 저장
         List<OrderItem> orderItems = new ArrayList<>();
         for (Menu menu : menus) {
             Long stock = menuIdToStock.get(menu.getId());
-            OrderItem orderItem = OrderItem.create(order, menu, stock);
+            menu.decreaseStock(stock);
+            OrderItem orderItem = OrderItem.create(saveOrder, menu, stock);
             orderItems.add(orderItem);
         }
         orderItemRepository.saveAll(orderItems);
@@ -155,13 +154,13 @@ public class OrderService {
         BigDecimal earnAmount = pointService.calculateEarnedPoints(priceBeforePoint, usedPointAmount);
         pointService.reserveEarnPoint(member, order, earnAmount);
 
-        return CreateOrderResponse.from(order, orderItems);
+        return CreateOrderResponse.from(saveOrder, orderItems);
     }
 
     //주문 취소
     @Transactional
     public void cancelOrder(Long userId, Long orderId) {
-        Order order = orderRepostory.findById(orderId).orElseThrow(
+        Order order = orderRepository.findById(orderId).orElseThrow(
                 () -> new OrderException(ErrorCode.ORDER_NOT_FOUND)
         );
         order.cancel(userId);
@@ -170,7 +169,7 @@ public class OrderService {
     //주문 목록 조회
     @Transactional(readOnly = true)
     public List<OrderListResponse> getOrders(Long userId) {
-        List<Order> orders = orderRepostory.findAllByMemberIdWithItems(userId);
+        List<Order> orders = orderRepository.findAllByMemberIdWithItems(userId);
         return orders.stream()
                 .map(OrderListResponse::from)
                 .toList();
@@ -179,7 +178,7 @@ public class OrderService {
     //주문 단건 조회
     @Transactional(readOnly = true)
     public OrderDetailResponse getOneOrder(Long userId, Long orderId) {
-       Order order = orderRepostory.findByIdWithItems(orderId).orElseThrow(
+       Order order = orderRepository.findByIdWithItems(orderId).orElseThrow(
                () -> new OrderException(ErrorCode.ORDER_NOT_FOUND)
        );
        if(!order.getMember().getMemberId().equals(userId)){
@@ -191,7 +190,7 @@ public class OrderService {
 
     @Transactional
     public void updateOrderStatus(Long storeOwnerId, Long orderId, UpdateOrderStatusRequest request) {
-        Order order = orderRepostory.findById(orderId).orElseThrow(
+        Order order = orderRepository.findById(orderId).orElseThrow(
                 () -> new OrderException(ErrorCode.ORDER_NOT_FOUND)
         );
         // 본인 가게 주문인지 확인(인증 인가 구현시 수정)
