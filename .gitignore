@@ -55,4 +55,4 @@ bootrun.log
 
 
 # Data Initializer
-src/main/java/com/example/hungrypangproject/common/DataInitializer.java
+src/main/java/com/example/hungrypangproject/DataInitializer.java
