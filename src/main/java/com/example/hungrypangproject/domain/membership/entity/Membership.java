@@ -1,20 +1,19 @@
 package com.example.hungrypangproject.domain.membership.entity;
 
+import com.example.hungrypangproject.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Getter
 @Table(name = "memberships")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Membership {
+public class Membership extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long MembershipId;
+    private Long id;
 
     @Column(nullable = false)
     private Double earnRate;
@@ -25,9 +24,6 @@ public class Membership {
     @Column(nullable = false)
     private Double minTotalPaidAmount;
 
-    private LocalDateTime createdAt;
-
-    private LocalDateTime modifiedAt;
 
     public static Membership register(
             Double earnRate,
