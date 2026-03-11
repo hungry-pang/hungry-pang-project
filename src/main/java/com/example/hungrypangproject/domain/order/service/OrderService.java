@@ -2,9 +2,11 @@ package com.example.hungrypangproject.domain.order.service;
 
 import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.domain.member.entity.Member;
+import com.example.hungrypangproject.domain.member.exception.MemberException;
 import com.example.hungrypangproject.domain.member.repository.MemberRepository;
 import com.example.hungrypangproject.domain.menu.entity.Menu;
 import com.example.hungrypangproject.domain.menu.entity.MenuStatus;
+import com.example.hungrypangproject.domain.menu.exception.MenuException;
 import com.example.hungrypangproject.domain.menu.repository.MenuRepository;
 import com.example.hungrypangproject.domain.order.dto.request.CreateOrderRequest;
 import com.example.hungrypangproject.domain.order.dto.request.OrderItemRequest;
@@ -17,8 +19,10 @@ import com.example.hungrypangproject.domain.order.entity.OrderItem;
 import com.example.hungrypangproject.domain.order.exception.OrderException;
 import com.example.hungrypangproject.domain.order.repository.OrderItemRepository;
 import com.example.hungrypangproject.domain.order.repository.OrderRepostory;
+import com.example.hungrypangproject.domain.point.exception.PointException;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import com.example.hungrypangproject.domain.store.entity.StoreStatus;
+import com.example.hungrypangproject.domain.store.exception.StoreException;
 import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +32,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,10 +47,10 @@ public class OrderService {
     @Transactional
     public CreateOrderResponse save(Long userId, CreateOrderRequest request) {
         Store store = storeRepository.findById(request.getStoreId()).orElseThrow(
-                () -> new OrderException(ErrorCode.STORE_NOT_FOUND) //store 오류 구현 후 수정
+                () -> new StoreException(ErrorCode.STORE_NOT_FOUND) //store 오류 구현 후 수정
         );
         if (store.getStatus() != StoreStatus.OPEN) {
-            throw new OrderException(ErrorCode.STORE_NOT_OPEN);
+            throw new StoreException(ErrorCode.STORE_NOT_OPEN);
         }
 
         Map<Long, Long> menuIdToStock = request.getItems().stream()
@@ -61,13 +64,13 @@ public class OrderService {
 
         //요청한 메뉴와 실제 조회된 메뉴의 수가 다르면 에러(없는 메뉴를 호출 할때)
         if (menus.size() != request.getItems().size()) {
-            throw new OrderException(ErrorCode.MENU_NOT_FOUND);
+            throw new MenuException(ErrorCode.MENU_NOT_FOUND);
         }
 
         //품절 유무 확인
         for (Menu menu : menus) {
             if (menu.getStatus() == MenuStatus.SOLDOUT) {
-                throw new OrderException(ErrorCode.MENU_SOLD_OUT);
+                throw new MenuException(ErrorCode.MENU_SOLD_OUT);
             }
         }
 
@@ -89,16 +92,16 @@ public class OrderService {
         //포인트 사용 부분 멤버 엔티티 추가
         if (request.getUsedPoint() != null && request.getUsedPoint().compareTo(BigDecimal.ZERO) > 0) {
             Member findMember = memberRepository.findById(userId).orElseThrow(
-                    () -> new OrderException(ErrorCode.MEMBER_NOT_FOUND)
+                    () -> new MemberException(ErrorCode.MEMBER_NOT_FOUND)
             );
             if (new BigDecimal(findMember.getTotalPoint()).compareTo(request.getUsedPoint()) < 0) {// compareTo 앞 < 뒷 -> -1 반환, 앞 == 뒤 -> 0 반환, 앞 > 뒤 -> 1반환
-                throw new OrderException(ErrorCode.POINT_NOT_ENOUGH);
+                throw new PointException(ErrorCode.POINT_NOT_ENOUGH);
             }
 
             //포인트는 전체 금액의 10% 이상 사용될 수 없음
             BigDecimal maxUsePoint = totalPrice.multiply(new BigDecimal("0.1"));
             if (request.getUsedPoint().compareTo(maxUsePoint) > 0) {
-                throw new OrderException(ErrorCode.POINT_EXCEED_LIMIT);
+                throw new PointException(ErrorCode.POINT_EXCEED_LIMIT);
             }
             totalPrice = totalPrice.subtract(request.getUsedPoint());
         }
@@ -154,10 +157,10 @@ public class OrderService {
         Order order = orderRepostory.findById(orderId).orElseThrow(
                 () -> new OrderException(ErrorCode.ORDER_NOT_FOUND)
         );
-//        // 본인 가게 주문인지 확인(인증 인가 구현시 수정)
-//        if (!order.getStore().getOwner().getId().equals(storeOwnerId)) {
-//            throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
-//        }
+        // 본인 가게 주문인지 확인(인증 인가 구현시 수정)
+        if (!order.getStore().isOwner(storeOwnerId)) {
+            throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+        }
         order.updateStatus(request.getOrderStatus());
     }
 

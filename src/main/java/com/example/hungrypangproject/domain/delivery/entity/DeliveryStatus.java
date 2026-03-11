@@ -4,10 +4,9 @@ import lombok.Getter;
 
 @Getter
 public enum DeliveryStatus {
-    PICKEDUP("PICKEDUP", "픽업 됨"),
+    PENDING("PENDING", "배달 대기"),
     DELIVERING("DELIVERING", "배달 중"),
-    COMPLERED("COMPLETED", "배달 완료"),
-    SEARCHING("SEARCHING", "기사 탐색");
+    COMPLETED("COMPLETED", "배달 완료");
 
     private final String statusCode;
     private final String description;

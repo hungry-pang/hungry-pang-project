@@ -4,6 +4,7 @@ import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareRequest;
 import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareResponse;
 import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyRequest;
 import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyResponse;
+import com.example.hungrypangproject.domain.payment.dto.WebhookRequest;
 import com.example.hungrypangproject.domain.payment.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,5 +46,24 @@ public class PaymentController {
 
         PaymentVerifyResponse response = paymentService.verifyPayment(request);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 웹훅 처리 API
+     * PortOne에서 결제 상태 변경 시 자동으로 호출하는 엔드포인트
+     *
+     * 주의사항:
+     * - 이 API는 PortOne 서버에서만 호출되어야 합니다
+     * - 프로덕션 환경에서는 PortOne IP 화이트리스트 검증 추가 권장
+     * - 멱등성이 보장되어 중복 호출 시에도 안전합니다
+     */
+    @PostMapping("/webhook")
+    public ResponseEntity<String> handleWebhook(@RequestBody WebhookRequest request) {
+
+        log.info("웹훅 수신 - impUid: {}, merchantUid: {}, status: {}",
+                request.getImp_uid(), request.getMerchant_uid(), request.getStatus());
+
+        String result = paymentService.processWebhook(request);
+        return ResponseEntity.ok(result);
     }
 }
