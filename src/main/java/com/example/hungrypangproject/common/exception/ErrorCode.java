@@ -70,6 +70,8 @@ public enum ErrorCode {
     WEBHOOK_DUPLICATE(HttpStatus.OK, "이미 처리된 웹훅입니다."),
     WEBHOOK_INVALID_STATUS(HttpStatus.BAD_REQUEST, "유효하지 않은 결제 상태입니다."),
 
+    NVALID_PASSWORD(HttpStatus.BAD_REQUEST,"비밀번호가 일치하지 않습니다."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED,"유효하지 않은 JWT 토큰입니다."),
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 
