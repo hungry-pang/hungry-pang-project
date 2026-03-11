@@ -47,6 +47,10 @@ public enum ErrorCode {
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST,"비밀번호가 일치하지 않습니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED,"유효하지 않은 JWT 토큰입니다."),
 
+    // Membership
+    MEMBERSHIP_NOT_GRADE(HttpStatus.BAD_REQUEST, "기본 등급 정책이 존재하지 않습니다."),
+    NOT_FOUND_USER_MEMBERSHIP(HttpStatus.NOT_FOUND, "해당하는 맴버십을 찾을 수 없습니다"),
+
     //REVIEW
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."),
     REVIEW_FORBIDDEN(HttpStatus.FORBIDDEN, "본인이 작성한 리뷰만 수정 또는 삭제할 수 있습니다."),
