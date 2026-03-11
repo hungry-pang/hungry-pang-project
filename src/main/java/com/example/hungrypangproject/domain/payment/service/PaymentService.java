@@ -22,6 +22,7 @@ import com.siot.IamportRestClient.response.IamportResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -36,7 +37,7 @@ public class PaymentService {
     private final IamportClient iamportClient;
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
-    private final WebhookRepository webhookRepository;
+    private final WebhookService webhookService;
 
     /**
      * 결제 준비
@@ -210,40 +211,35 @@ public class PaymentService {
      * PortOne에서 결제 상태가 변경될 때마다 호출되는 웹훅을 처리합니다.
      *
      * 처리 순서:
-     * 1. 중복 웹훅 체크 (같은 imp_uid가 이미 처리되었는지 확인)
-     * 2. 웹훅 기록 저장 (감사 추적용)
-     * 3. PortOne API로 실제 결제 정보 조회 (검증)
-     * 4. DB 결제 정보 조회
+     * 1. 중복 웹훅 체크 (imp_uid + status 조합으로 확인)
+     * 2. 웹훅 기록 저장 (별도 트랜잭션, 감사 추적용)
+     * 3. PortOne API로 실제 결제 정보 조회 (검증) - 트랜잭션 외부에서 실행
+     * 4. DB 결제 정보 조회 및 검증 (새 트랜잭션)
      * 5. 멱등성 체크 (이미 처리된 결제인지)
      * 6. merchant_uid 일치 확인
      * 7. 금액 검증
      * 8. 결제 상태에 따른 처리 (paid/failed/cancelled)
      * 9. 주문 상태 업데이트
-     * 10. 웹훅 처리 완료 표시
+     * 10. 웹훅 처리 완료 표시 (별도 트랜잭션)
      * 11. PortOne에 200 OK 응답
      */
-    @Transactional
     public String processWebhook(WebhookRequest request) {
         log.info("웹훅 수신 - impUid: {}, merchantUid: {}, status: {}",
                 request.getImp_uid(), request.getMerchant_uid(), request.getStatus());
 
-        // 1. 중복 웹훅 체크 (같은 imp_uid가 이미 처리되었는지 확인)
-        if (webhookRepository.existsByWebhookId(request.getImp_uid())) {
-            log.info("이미 처리된 웹훅 - impUid: {}", request.getImp_uid());
+        // 1. 중복 웹훅 체크 (imp_uid + status 조합으로 확인)
+        // 같은 imp_uid라도 다른 상태(paid → cancelled 등)는 별도 처리
+        if (webhookService.isDuplicateWebhook(request.getImp_uid(), request.getStatus())) {
+            log.info("이미 처리된 웹훅 - impUid: {}, status: {}", request.getImp_uid(), request.getStatus());
             return "OK"; // PortOne에 200 OK 응답 (멱등성 보장)
         }
 
-        // 2. 웹훅 기록 저장 (감사 추적용)
-        Webhook webhook = Webhook.builder()
-                .webhookId(request.getImp_uid())
-                .paymentId(request.getMerchant_uid())
-                .eventStatus(request.getStatus())
-                .status(WebhookStatus.RECEIVED)
-                .build();
-        webhookRepository.save(webhook);
+        // 2. 웹훅 기록 저장 (별도 트랜잭션으로 실행하여 예외 발생 시에도 기록 유지)
+        Long webhookId = webhookService.saveWebhookRecord(request);
 
         try {
             // 3. PortOne API로 실제 결제 정보 조회 (검증)
+            // 트랜잭션 외부에서 실행하여 DB 커넥션 점유 방지
             IamportResponse<com.siot.IamportRestClient.response.Payment> portOneResponse =
                     iamportClient.paymentByImpUid(request.getImp_uid());
 
@@ -251,101 +247,135 @@ public class PaymentService {
             if (portOneResponse.getCode() != 0) {
                 log.error("PortOne API 조회 실패 - code: {}, message: {}",
                         portOneResponse.getCode(), portOneResponse.getMessage());
-                webhook.markAsFailed();
-                throw new PaymentException(ErrorCode.PORTONE_API_ERROR, portOneResponse.getMessage());
+                webhookService.markWebhookAsFailed(webhookId);
+                // PortOne API 일시적 장애 → 재시도 필요
+                throw new PaymentException(ErrorCode.PORTONE_API_ERROR, portOneResponse.getMessage(), true);
             }
 
             com.siot.IamportRestClient.response.Payment portOnePayment = portOneResponse.getResponse();
 
-            // 5. DB에서 결제 정보 조회
-            Payment dbPayment = paymentRepository.findByDbPaymentId(portOnePayment.getMerchantUid())
-                    .orElseThrow(() -> new PaymentException(ErrorCode.PAYMENT_NOT_FOUND));
+            // 5. DB 처리 (별도 트랜잭션으로 실행)
+            processPaymentData(webhookId, portOnePayment, request.getImp_uid());
 
-            // 6. merchant_uid 일치 확인 (위변조 방지)
-            if (!portOnePayment.getMerchantUid().equals(dbPayment.getDbPaymentId())) {
-                log.error("merchant_uid 불일치 - PortOne: {}, DB: {}",
-                        portOnePayment.getMerchantUid(), dbPayment.getDbPaymentId());
-                webhook.markAsFailed();
-                throw new PaymentException(ErrorCode.PAYMENT_INFO_MISMATCH);
-            }
+            // 6. 웹훅 처리 완료 표시 (별도 트랜잭션)
+            webhookService.markWebhookAsProcessed(webhookId);
+            log.info("웹훅 처리 완료 - webhookId: {}", webhookId);
 
-            // 7. 금액 검증 (위변조 방지)
-            BigDecimal finalAmount = dbPayment.getTotalAmount().subtract(
-                    dbPayment.getPointsToUse() != null ? dbPayment.getPointsToUse() : BigDecimal.ZERO
-            );
-
-            if (portOnePayment.getAmount().compareTo(finalAmount) != 0) {
-                log.error("결제 금액 불일치 - PortOne: {}, DB: {}",
-                        portOnePayment.getAmount(), finalAmount);
-                webhook.markAsFailed();
-                throw new PaymentException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
-            }
-
-            // 8. 결제 상태에 따른 처리
-            Order order = dbPayment.getOrder();
-            String portOneStatus = portOnePayment.getStatus();
-
-            switch (portOneStatus) {
-                case "paid":
-                    // 8-1. 멱등성 체크 (이미 처리된 결제인지)
-                    if (dbPayment.getStatus() == PaymentStatus.PAID) {
-                        log.info("이미 처리된 결제 - paymentId: {}", dbPayment.getId());
-                        webhook.markAsProcessed();
-                        return "OK";
-                    }
-
-                    // 결제 성공 처리
-                    dbPayment.completePayment(request.getImp_uid());
-                    log.info("결제 성공 처리 완료 - paymentId: {}", dbPayment.getId());
-
-                    // 주문 상태를 PREPARING(조리 준비)로 변경
-                    order.updateStatus(OrderStatus.PREPARING);
-                    log.info("주문 상태 변경 완료 - orderId: {}, status: PREPARING", order.getId());
-                    break;
-
-                case "failed":
-                    // 결제 실패 처리
-                    dbPayment.failPayment();
-                    log.info("결제 실패 처리 완료 - paymentId: {}", dbPayment.getId());
-
-                    // 주문 상태는 WATING 유지 (다시 결제 시도 가능)
-                    break;
-
-                case "cancelled":
-                    // 결제 취소 처리
-                    dbPayment.failPayment();
-                    log.info("결제 취소 처리 완료 - paymentId: {}", dbPayment.getId());
-
-                    // 주문 상태를 CANCELLED로 변경
-                    order.updateStatus(OrderStatus.CANCELLED);
-                    log.info("주문 상태 변경 완료 - orderId: {}, status: CANCELLED", order.getId());
-                    break;
-
-                default:
-                    log.error("알 수 없는 결제 상태 - status: {}", portOneStatus);
-                    webhook.markAsFailed();
-                    throw new PaymentException(ErrorCode.WEBHOOK_INVALID_STATUS);
-            }
-
-            // 9. 웹훅 처리 완료 표시
-            webhook.markAsProcessed();
-            log.info("웹훅 처리 완료 - webhookId: {}", webhook.getId());
-
-            // 10. PortOne에 200 OK 응답
+            // 7. PortOne에 200 OK 응답
             return "OK";
 
         } catch (IamportResponseException e) {
             log.error("PortOne API 호출 중 예외 발생", e);
-            webhook.markAsFailed();
-            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, e.getMessage());
+            webhookService.markWebhookAsFailed(webhookId);
+            // PortOne API 일시적 장애 → 재시도 필요
+            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, e.getMessage(), true);
         } catch (IOException e) {
             log.error("PortOne API 통신 중 IO 예외 발생", e);
-            webhook.markAsFailed();
-            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "API 통신 중 오류가 발생했습니다.");
+            webhookService.markWebhookAsFailed(webhookId);
+            // 네트워크 일시적 장애 → 재시도 필요
+            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "API 통신 중 오류가 발생했습니다.", true);
+        } catch (PaymentException e) {
+            // 재시도 가능 여부에 따라 분기
+            if (e.isRetryable()) {
+                // 일시적 장애 (PortOne API 다운, 네트워크 장애 등)
+                // → 예외를 던져서 포트원이 나중에 다시 웹훅을 보내도록 유도
+                log.error("웹훅 처리 중 일시적 장애 발생 (재시도 필요): {}", e.getMessage());
+                throw e;
+            } else {
+                // 비즈니스 에러 (금액 불일치, 위변조 의심 등)
+                // → 재시도해도 똑같은 결과이므로 OK 반환하여 무한 재시도 방지
+                log.error("웹훅 비즈니스 검증 실패 (재시도 불필요): {}", e.getMessage());
+                return "OK";
+            }
         } catch (Exception e) {
-            log.error("웹훅 처리 중 예외 발생", e);
-            webhook.markAsFailed();
+            // 예상치 못한 시스템 에러 → 재시도 필요
+            log.error("웹훅 시스템 에러 발생 (재시도 필요)", e);
+            webhookService.markWebhookAsFailed(webhookId);
             throw e;
         }
     }
+
+    /**
+     * 결제 데이터 처리 (별도 트랜잭션)
+     *
+     * PortOne API 조회 후 DB 처리를 별도 트랜잭션으로 분리
+     * 외부 API 호출 중 DB 커넥션을 점유하지 않도록 보장
+     */
+    @Transactional
+    public void processPaymentData(Long webhookId,
+                                    com.siot.IamportRestClient.response.Payment portOnePayment,
+                                    String impUid) {
+        // 1. DB에서 결제 정보 조회
+        Payment dbPayment = paymentRepository.findByDbPaymentId(portOnePayment.getMerchantUid())
+                .orElseThrow(() -> {
+                    webhookService.markWebhookAsFailed(webhookId);
+                    return new PaymentException(ErrorCode.PAYMENT_NOT_FOUND);
+                });
+
+        // 2. merchant_uid 일치 확인 (위변조 방지)
+        if (!portOnePayment.getMerchantUid().equals(dbPayment.getDbPaymentId())) {
+            log.error("merchant_uid 불일치 - PortOne: {}, DB: {}",
+                    portOnePayment.getMerchantUid(), dbPayment.getDbPaymentId());
+            webhookService.markWebhookAsFailed(webhookId);
+            throw new PaymentException(ErrorCode.PAYMENT_INFO_MISMATCH);
+        }
+
+        // 3. 금액 검증 (위변조 방지)
+        BigDecimal finalAmount = dbPayment.getTotalAmount().subtract(
+                dbPayment.getPointsToUse() != null ? dbPayment.getPointsToUse() : BigDecimal.ZERO
+        );
+
+        if (portOnePayment.getAmount().compareTo(finalAmount) != 0) {
+            log.error("결제 금액 불일치 - PortOne: {}, DB: {}",
+                    portOnePayment.getAmount(), finalAmount);
+            webhookService.markWebhookAsFailed(webhookId);
+            throw new PaymentException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+
+        // 4. 결제 상태에 따른 처리
+        Order order = dbPayment.getOrder();
+        String portOneStatus = portOnePayment.getStatus();
+
+        switch (portOneStatus) {
+            case "paid":
+                // 4-1. 멱등성 체크 (이미 처리된 결제인지)
+                if (dbPayment.getStatus() == PaymentStatus.PAID) {
+                    log.info("이미 처리된 결제 - paymentId: {}", dbPayment.getId());
+                    return;
+                }
+
+                // 결제 성공 처리
+                dbPayment.completePayment(impUid);
+                log.info("결제 성공 처리 완료 - paymentId: {}", dbPayment.getId());
+
+                // 주문 상태를 PREPARING(조리 준비)로 변경
+                order.updateStatus(OrderStatus.PREPARING);
+                log.info("주문 상태 변경 완료 - orderId: {}, status: PREPARING", order.getId());
+                break;
+
+            case "failed":
+                // 결제 실패 처리
+                dbPayment.failPayment();
+                log.info("결제 실패 처리 완료 - paymentId: {}", dbPayment.getId());
+
+                // 주문 상태는 WATING 유지 (다시 결제 시도 가능)
+                break;
+
+            case "cancelled":
+                // 결제 취소 처리
+                dbPayment.failPayment();
+                log.info("결제 취소 처리 완료 - paymentId: {}", dbPayment.getId());
+
+                // 주문 상태를 CANCELLED로 변경
+                order.updateStatus(OrderStatus.CANCELLED);
+                log.info("주문 상태 변경 완료 - orderId: {}, status: CANCELLED", order.getId());
+                break;
+
+            default:
+                log.error("알 수 없는 결제 상태 - status: {}", portOneStatus);
+                webhookService.markWebhookAsFailed(webhookId);
+                throw new PaymentException(ErrorCode.WEBHOOK_INVALID_STATUS);
+        }
+    }
+
 }
