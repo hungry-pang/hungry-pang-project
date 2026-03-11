@@ -12,6 +12,7 @@ import com.example.hungrypangproject.domain.member.entity.MemberRoleEnum;
 import com.example.hungrypangproject.domain.member.repository.MemberRepository;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import com.example.hungrypangproject.domain.order.repository.OrderRepository;
+import com.example.hungrypangproject.domain.point.service.PointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final OrderRepository orderRepository;
     private final MemberRepository memberRepository;
+    private final PointService pointService;
 
     @Transactional
     public CreateDeliveryResponse createDelivery(CreateDeliveryRequest request){
@@ -67,6 +69,10 @@ public class DeliveryService {
                 () -> new DeliveryException(ErrorCode.DELIVERY_NOT_FOUND)
         );
         delivery.complete(riderId);
+
+        // 배달 완료 시, 포인트 상태 변경 (HOLDING -> SAVE)
+        Order order = delivery.getOrder();
+        pointService.completePoint(order);
     }
 
     // 유저 본인 주문의 배달 상태 조회

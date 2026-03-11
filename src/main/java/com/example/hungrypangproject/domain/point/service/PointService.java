@@ -10,7 +10,6 @@ import com.example.hungrypangproject.domain.point.repository.PointRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -27,17 +26,17 @@ public class PointService {
      * 2. 포인트 사용 및 로그 생성
      * 3. 포인트 적립 및 로그 생성
      * 4. 배달 완료 : 포인트 확정 업데이트
+     * 주문 서비스와 동시에 롤백이 되지 않게 Transactional 삭제
      */
 
-    @Transactional
-    public Long calculateEarnedPoints (Long totalPrice, Long usedPoints) {
-        long payAmount = totalPrice - usedPoints;
-        return (payAmount * 5) / 100;
+    public BigDecimal calculateEarnedPoints (BigDecimal totalPrice, BigDecimal usedPoints) {
+        BigDecimal payAmount = totalPrice.subtract(usedPoints);
+        return payAmount.multiply(new BigDecimal("0.05"))
+                .setScale(0,RoundingMode.FLOOR);
     }
 
-   @Transactional
-    public void usedPoint(Member member, Order order, Long useAmount) {
-        if(useAmount < 100) {
+    public void usedPoint(Member member, Order order, BigDecimal useAmount) {
+        if(useAmount.compareTo(new BigDecimal("100")) < 0) {
             throw new ServiceException(ErrorCode.POINT_NOT_ENOUGH);
         }
 
@@ -47,7 +46,7 @@ public class PointService {
                 .setScale(0, RoundingMode.FLOOR);
 
         // 사용하려는 포인트가 10% 초과할 때
-        if(BigDecimal.valueOf(useAmount).compareTo(maxLimit) > 0) {
+        if(useAmount.compareTo(maxLimit) > 0) {
             throw new ServiceException(ErrorCode.POINT_EXCEED_LIMIT);
         }
 
@@ -56,22 +55,21 @@ public class PointService {
 
         Point useLog = Point.register(
                 member.getTotalPoint(),
-                0L,
+                BigDecimal.ZERO,
                 useAmount,
-                PointEnum.USE,
+                PointEnum.HOLDING,
                 member,
                 order
         );
         pointRepository.save(useLog);
    }
 
-   @Transactional
-    public void reserveEarnPoint(Member member, Order order, Long earnAmount) {
+    public void reserveEarnPoint(Member member, Order order, BigDecimal earnAmount) {
         // 배달 완료 전 홀딩 상태 포인트 확인
         Point earnLog = Point.register(
                 member.getTotalPoint(),
                 earnAmount,
-                0L,
+                BigDecimal.ZERO,
                 PointEnum.HOLDING,
                 member,
                 order
@@ -79,7 +77,6 @@ public class PointService {
         pointRepository.save(earnLog);
    }
 
-   @Transactional
     public void completePoint(Order order) {
        // 적립 홀딩 상태 확인
        Point point = pointRepository.findFirstByOrderAndStatusOrderByCreatedAtDesc(order, PointEnum.HOLDING)

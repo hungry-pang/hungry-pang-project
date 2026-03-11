@@ -8,6 +8,7 @@ import com.example.hungrypangproject.domain.member.dto.respons.*;
 import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import com.example.hungrypangproject.domain.member.repository.MemberRepository;
+import com.example.hungrypangproject.domain.membership.service.MembershipService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,8 +27,17 @@ public class MemberService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final MembershipService membershipService;
 
-    // 회원가입
+    /*
+    * 1. 회원가입 : 회원가입 동시에 멤버십 등급 NORMAL초기화
+    * 2. 로그인 : AccessToken, RefreshToken 발급
+    * 3. RefreshToke 재발급  -> 수정 필요
+    * 4. 회원정보 수정
+    * 5. 회원정보 조회
+    * 6. 로그아웃
+     */
+
     @Transactional
     public SaveMemberResponse signup (SaveMemberRequest request) {
         if(memberRepository.existsByEmail(request.getEmail())) {
@@ -38,10 +48,13 @@ public class MemberService {
         Member member = Member.register(request, encodePassword);
 
         memberRepository.save(member);
+
+        membershipService.setupMembership(member);
+        log.info("회원가입 및 멤버십 초기화 완료: {}", member.getEmail());
+
         return SaveMemberResponse.register(member);
     }
 
-    // 로그인
     @Transactional
     public LoginInfo login (LoginMemberRequest request) {
         // authentication 객체 생성 및 인증 로직 진행
@@ -93,7 +106,6 @@ public class MemberService {
         return LoginInfo.register(member, newAccess, newRefresh);
     }
 
-    // 회원정보 수정
     @Transactional
     public UpdateMemberResponse updateMemberResponse(Member member, UpdateMemberRequest request){
        member.updateInfo(request.getNickname(), request.getAddress(),request.getPhoneNo());
@@ -101,13 +113,11 @@ public class MemberService {
        return UpdateMemberResponse.register(member);
     }
 
-    // 회원정보 조회
     @Transactional(readOnly = true)
     public SearchMemberResponse findOne(Member member) {
         return SearchMemberResponse.register(member);
     }
 
-    // 로그아웃
     @Transactional
     public void logout(Long id) {
         Member member = memberRepository.findById(id)
