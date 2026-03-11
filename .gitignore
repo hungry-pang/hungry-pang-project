@@ -52,3 +52,7 @@ src/main/resources/data.sql
 test-data.sql
 reset-database.sql
 bootrun.log
+
+
+# Data Initializer
+src/main/java/com/example/hungrypangproject/DataInitializer.java

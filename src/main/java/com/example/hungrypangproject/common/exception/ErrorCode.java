@@ -23,6 +23,13 @@ public enum ErrorCode {
     ORDER_NOT_CHANGEABLE(HttpStatus.BAD_REQUEST, "이미 완료되거나 환불된 주문입니다."),
     ORDER_STATUS_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 주문 상태입니다."),
 
+    //DELIVERY
+    DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "배달을 찾을 수 없습니다."),
+    DELIVERY_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 배달 요청이 존재합니다."),
+    DELIVERY_NOT_CHANGEABLE(HttpStatus.BAD_REQUEST, "배달 상태를 변경할 수 없습니다."),
+    DELIVERY_FORBIDDEN(HttpStatus.FORBIDDEN, "배달에 대한 권한이 없습니다."),
+    RAIDER_NOT_FOUND(HttpStatus.NOT_FOUND, "배정 가능한 라이더가 없습니다."),
+
     //MENU
     MENU_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 메뉴를 찾을 수 없습니다."),
     MENU_SOLD_OUT(HttpStatus.BAD_REQUEST, "품절된 메뉴입니다."),
@@ -36,7 +43,6 @@ public enum ErrorCode {
     //MEMBER
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을수 없습니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.NOT_FOUND, "중복된 이메일입니다."),
-
 
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST,"비밀번호가 일치하지 않습니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED,"유효하지 않은 JWT 토큰입니다."),
@@ -59,7 +65,11 @@ public enum ErrorCode {
     PAYMENT_INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "최종 결제 금액은 0보다 작을 수 없습니다."),
     PAYMENT_DUPLICATE(HttpStatus.BAD_REQUEST, "이미 진행 중이거나 완료된 결제가 있습니다."),
     PORTONE_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "PortOne API 호출 중 오류가 발생했습니다."),
-  
+
+    //WEBHOOK
+    WEBHOOK_DUPLICATE(HttpStatus.OK, "이미 처리된 웹훅입니다."),
+    WEBHOOK_INVALID_STATUS(HttpStatus.BAD_REQUEST, "유효하지 않은 결제 상태입니다."),
+
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 
