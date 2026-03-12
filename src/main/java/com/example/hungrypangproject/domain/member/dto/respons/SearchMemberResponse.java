@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class SearchMemberResponse {
 
+    private final Long MemberId;
     private final String email;
     private final String nickName;
     private final String address;
@@ -19,6 +20,7 @@ public class SearchMemberResponse {
 
     public static SearchMemberResponse register(Member member) {
         return new SearchMemberResponse(
+                member.getMemberId(),
                 member.getEmail(),
                 member.getNickname(),
                 member.getAddress(),

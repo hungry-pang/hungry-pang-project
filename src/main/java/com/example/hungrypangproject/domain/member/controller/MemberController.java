@@ -71,9 +71,9 @@ public class MemberController {
 
     @GetMapping("/members/{memberId}")
     public ResponseEntity<SearchMemberResponse> getId(
-            @AuthenticationPrincipal MemberUserDetails userDetails
+            @PathVariable Long memberId
     ) {
-        SearchMemberResponse response = memberService.findOne(userDetails.getMember());
+        SearchMemberResponse response = memberService.findOne(memberId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

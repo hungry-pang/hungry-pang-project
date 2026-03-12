@@ -117,7 +117,10 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public SearchMemberResponse findOne(Member member) {
+    public SearchMemberResponse findOne(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+
         return SearchMemberResponse.register(member);
     }
 
