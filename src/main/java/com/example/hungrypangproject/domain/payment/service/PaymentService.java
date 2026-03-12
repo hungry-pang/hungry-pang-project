@@ -11,22 +11,27 @@ import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyResponse;
 import com.example.hungrypangproject.domain.payment.dto.WebhookRequest;
 import com.example.hungrypangproject.domain.payment.entity.Payment;
 import com.example.hungrypangproject.domain.payment.entity.PaymentStatus;
-import com.example.hungrypangproject.domain.payment.entity.Webhook;
-import com.example.hungrypangproject.domain.payment.entity.WebhookStatus;
 import com.example.hungrypangproject.domain.payment.exception.PaymentException;
 import com.example.hungrypangproject.domain.payment.repository.PaymentRepository;
-import com.example.hungrypangproject.domain.payment.repository.WebhookRepository;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.siot.IamportRestClient.IamportClient;
 import com.siot.IamportRestClient.exception.IamportResponseException;
 import com.siot.IamportRestClient.response.IamportResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -34,10 +39,19 @@ import java.util.UUID;
 @Slf4j
 public class PaymentService {
 
+    private static final Set<String> PAID_STATUSES = Set.of("PAID", "DONE", "paid", "done");
+
     private final IamportClient iamportClient;
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final WebhookService webhookService;
+    private final ObjectMapper objectMapper;
+
+    @Value("${portone.api.base-url:https://api.portone.io}")
+    private String portOneBaseUrl;
+
+    @Value("${portone.api.v2-secret:${portone.api.secret}}")
+    private String portOneV2Secret;
 
     /**
      * 결제 준비
@@ -122,10 +136,11 @@ public class PaymentService {
      */
     @Transactional
     public PaymentVerifyResponse verifyPayment(PaymentVerifyRequest request) {
-        log.info("결제 검증 시작 - impUid: {}, merchantUid: {}", request.getImpUid(), request.getMerchantUid());
+        log.info("결제 검증 시작 - paymentId: {}, dbPaymentId: {}, txId: {}",
+                request.getPaymentId(), request.getDbPaymentId(), request.getTxId());
 
-        // 1. DB에서 결제 정보 조회 (merchant_uid 사용)
-        Payment dbPayment = paymentRepository.findByDbPaymentId(request.getMerchantUid())
+        // 1. DB에서 결제 정보 조회
+        Payment dbPayment = paymentRepository.findByDbPaymentId(request.getDbPaymentId())
                 .orElseThrow(() -> new PaymentException(ErrorCode.PAYMENT_NOT_FOUND));
 
         // 2. 멱등성 체크 (이미 처리된 결제인지)
@@ -135,74 +150,140 @@ public class PaymentService {
         }
 
         try {
-            // 3. PortOne API로 실제 결제 정보 조회 (imp_uid 사용)
-            IamportResponse<com.siot.IamportRestClient.response.Payment> portOneResponse =
-                    iamportClient.paymentByImpUid(request.getImpUid());
+            // 3. PortOne v2 API로 실제 결제 정보 조회
+            // PortOne v2 REST API의 paymentId는 결제창 호출 시 넘긴 paymentId (= dbPaymentId)
+            JsonNode portOnePayment = getPortOneV2Payment(request.getDbPaymentId());
 
-            // 4. PortOne API 응답 확인
-            if (portOneResponse.getCode() != 0) {
-                log.error("PortOne API 조회 실패 - code: {}, message: {}",
-                        portOneResponse.getCode(), portOneResponse.getMessage());
-                dbPayment.failPayment();
-                throw new PaymentException(ErrorCode.PORTONE_API_ERROR, portOneResponse.getMessage());
-            }
-
-            com.siot.IamportRestClient.response.Payment portOnePayment = portOneResponse.getResponse();
-
-            // 5. merchant_uid 일치 확인 (위변조 방지)
-            if (!portOnePayment.getMerchantUid().equals(dbPayment.getDbPaymentId())) {
-                log.error("merchant_uid 불일치 - PortOne: {}, DB: {}",
-                        portOnePayment.getMerchantUid(), dbPayment.getDbPaymentId());
+            // 4. 결제 ID 일치 확인
+            // PortOne v2 응답의 id 필드 = 결제창에 넘긴 paymentId = dbPaymentId
+            String responsePaymentId = extractText(portOnePayment, "id", "paymentId");
+            if (responsePaymentId != null && !request.getDbPaymentId().equals(responsePaymentId)) {
+                log.error("paymentId 불일치 - 요청: {}, 응답: {}", request.getDbPaymentId(), responsePaymentId);
                 dbPayment.failPayment();
                 throw new PaymentException(ErrorCode.PAYMENT_INFO_MISMATCH);
             }
 
-            // 6. 금액 검증 (위변조 방지 - 가장 중요!)
+            // 5. 금액 검증 (위변조 방지)
             BigDecimal finalAmount = dbPayment.getTotalAmount().subtract(
                     dbPayment.getPointsToUse() != null ? dbPayment.getPointsToUse() : BigDecimal.ZERO
             );
 
-            if (portOnePayment.getAmount().compareTo(finalAmount) != 0) {
-                log.error("결제 금액 불일치 - PortOne: {}, DB: {}",
-                        portOnePayment.getAmount(), finalAmount);
+            BigDecimal paidAmount = extractAmount(portOnePayment);
+            if (paidAmount.compareTo(finalAmount) != 0) {
+                log.error("결제 금액 불일치 - PortOne: {}, DB: {}", paidAmount, finalAmount);
                 dbPayment.failPayment();
                 throw new PaymentException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
             }
 
-            // 7. 결제 상태 확인
-            if (!"paid".equals(portOnePayment.getStatus())) {
-                log.error("결제 미완료 - status: {}", portOnePayment.getStatus());
+            // 6. 결제 상태 확인
+            String paymentStatus = extractText(portOnePayment, "status");
+            if (paymentStatus == null || !PAID_STATUSES.contains(paymentStatus)) {
+                log.error("결제 미완료 - status: {}", paymentStatus);
                 dbPayment.failPayment();
                 throw new PaymentException(ErrorCode.PAYMENT_NOT_COMPLETED);
             }
 
-            // 8. 결제 성공 처리
-            dbPayment.completePayment(request.getImpUid());
+            // 7. 결제 성공 처리
+            dbPayment.completePayment(request.getPaymentId());
             log.info("결제 성공 처리 완료 - paymentId: {}", dbPayment.getId());
 
-            // 9. 주문 상태를 PREPARING(조리 준비)로 변경
+            // 8. 주문 상태를 PREPARING(조리 준비)로 변경
             Order order = dbPayment.getOrder();
             order.updateStatus(OrderStatus.PREPARING);
             log.info("주문 상태 변경 완료 - orderId: {}, status: PREPARING", order.getId());
 
-            // 10. 응답 생성
+            // 9. 응답 생성
             return PaymentVerifyResponse.success(
                     dbPayment.getId(),
                     order.getId(),
-                    request.getImpUid(),
+                    request.getPaymentId(),
                     finalAmount,
                     OrderStatus.PREPARING.getDescription()
             );
 
-        } catch (IamportResponseException e) {
-            log.error("PortOne API 호출 중 예외 발생", e);
-            dbPayment.failPayment();
-            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, e.getMessage());
+        } catch (PaymentException e) {
+            throw e;
         } catch (IOException e) {
-            log.error("PortOne API 통신 중 IO 예외 발생", e);
+            log.error("PortOne v2 API 응답 파싱 중 예외 발생", e);
             dbPayment.failPayment();
-            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "API 통신 중 오류가 발생했습니다.");
+            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "API 응답 처리 중 오류가 발생했습니다.");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("PortOne v2 API 호출 중 인터럽트 발생", e);
+            dbPayment.failPayment();
+            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "API 통신 중 인터럽트가 발생했습니다.");
         }
+    }
+
+    private JsonNode getPortOneV2Payment(String paymentId) throws IOException, InterruptedException {
+        String requestUrl = portOneBaseUrl + "/payments/" + paymentId;
+        HttpClient client = HttpClient.newHttpClient();
+
+        HttpRequest portOneAuthRequest = HttpRequest.newBuilder()
+                .uri(URI.create(requestUrl))
+                .timeout(Duration.ofSeconds(10))
+                .header("Authorization", "PortOne " + portOneV2Secret)
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(portOneAuthRequest, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 401 || response.statusCode() == 403) {
+            HttpRequest bearerAuthRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(requestUrl))
+                    .timeout(Duration.ofSeconds(10))
+                    .header("Authorization", "Bearer " + portOneV2Secret)
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            response = client.send(bearerAuthRequest, HttpResponse.BodyHandlers.ofString());
+        }
+
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new PaymentException(
+                    ErrorCode.PORTONE_API_ERROR,
+                    "PortOne v2 결제 조회 실패: HTTP " + response.statusCode()
+            );
+        }
+
+        JsonNode root = objectMapper.readTree(response.body());
+        if (root.has("payment") && root.get("payment").isObject()) {
+            return root.get("payment");
+        }
+        if (root.has("response") && root.get("response").isObject()) {
+            return root.get("response");
+        }
+        return root;
+    }
+
+    private String extractText(JsonNode node, String... fieldNames) {
+        for (String fieldName : fieldNames) {
+            JsonNode field = node.get(fieldName);
+            if (field != null && !field.isNull() && !field.asText().isBlank()) {
+                return field.asText();
+            }
+        }
+        return null;
+    }
+
+    private BigDecimal extractAmount(JsonNode node) {
+        JsonNode amount = node.get("amount");
+        if (amount == null || amount.isNull()) {
+            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "결제 금액 정보를 찾을 수 없습니다.");
+        }
+
+        if (amount.isNumber() || amount.isTextual()) {
+            return new BigDecimal(amount.asText());
+        }
+
+        JsonNode total = amount.get("total");
+        if (total != null && !total.isNull()) {
+            return new BigDecimal(total.asText());
+        }
+
+        throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "결제 금액 포맷이 올바르지 않습니다.");
     }
 
     /**

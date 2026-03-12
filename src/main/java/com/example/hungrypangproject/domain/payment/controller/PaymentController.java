@@ -42,7 +42,8 @@ public class PaymentController {
     public ResponseEntity<PaymentVerifyResponse> verifyPayment(
             @Valid @RequestBody PaymentVerifyRequest request) {
 
-        log.info("결제 검증 요청 - impUid: {}, merchantUid: {}", request.getImpUid(), request.getMerchantUid());
+        log.info("결제 검증 요청 - paymentId: {}, dbPaymentId: {}, txId: {}",
+                request.getPaymentId(), request.getDbPaymentId(), request.getTxId());
 
         PaymentVerifyResponse response = paymentService.verifyPayment(request);
         return ResponseEntity.ok(response);

@@ -63,4 +63,12 @@ public class Payment {
     public void refund() {
         this.status = PaymentStatus.REFUND;
     }
+
+    // 환불 시 결제 상태 검증
+    public boolean isRefund() {
+        return this.status == PaymentStatus.REFUND;
+    }
+    public boolean isPaid() {
+        return this.status == PaymentStatus.PAID;
+    }
 }

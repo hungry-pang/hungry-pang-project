@@ -74,7 +74,7 @@ public class Order extends BaseEntity {
         if(!this.member.getMemberId().equals(userId)){
                 throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
         }
-        if(this.orderStatus != OrderStatus.WAITING){
+        if(this.orderStatus != OrderStatus.PREPARING){
             throw new OrderException(ErrorCode.ORDER_NOT_CANCELABLE);
         }
         this.orderStatus = OrderStatus.CANCELLED;
@@ -102,5 +102,19 @@ public class Order extends BaseEntity {
         BigDecimal total = (this.totalPrice != null) ? this.totalPrice : BigDecimal.ZERO;
         BigDecimal used = (this.usedPoint != null) ? this.usedPoint : BigDecimal.ZERO;
         return total.subtract(used);
+    }
+
+    // 환불 시 주문 상태 검증
+    public boolean isCancelled() {
+        return this.orderStatus == OrderStatus.CANCELLED;
+    }
+    public boolean isRefunded() {
+        return this.orderStatus == OrderStatus.REFUNDED;
+    }
+    public boolean isCompleted() {
+        return this.orderStatus == OrderStatus.COMPLETED;
+    }
+    public boolean isRefunable() {
+        return this.orderStatus == OrderStatus.PREPARING;
     }
 }
