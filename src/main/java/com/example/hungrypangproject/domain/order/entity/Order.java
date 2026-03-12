@@ -77,7 +77,7 @@ public class Order extends BaseEntity {
         if(this.orderStatus != OrderStatus.WAITING){
             throw new OrderException(ErrorCode.ORDER_NOT_CANCELABLE);
         }
-        this.orderStatus = OrderStatus.REFUNDED;
+        this.orderStatus = OrderStatus.CANCELLED;
     }
 
     public void updateStatus(OrderStatus newStatus) {
