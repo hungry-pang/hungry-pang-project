@@ -22,9 +22,11 @@ public class DeliveryController {
     @Secured("ROLE_SELLER")
     @PostMapping
     public ApiResponse<CreateDeliveryResponse> createDelivery(
-            @RequestBody CreateDeliveryRequest request
+            @RequestBody CreateDeliveryRequest request,
+            @AuthenticationPrincipal MemberUserDetails userDetails
     ) {
-        return ApiResponse.created(deliveryService.createDelivery(request));
+        Long sellerId = userDetails.getMember().getMemberId();
+        return ApiResponse.created(deliveryService.createDelivery(request, sellerId));
     }
 
     // 배달 완료 처리 - 라이더만 가능

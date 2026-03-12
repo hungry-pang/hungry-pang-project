@@ -67,13 +67,14 @@ public class OrderService {
 
         List<Long> menuIds = new ArrayList<>(menuIdToStock.keySet());
         // key값만 뽑아내서 id목록으로 한번에 조회, 쿼리가 한번만 나감4
-        List<Menu> menus = menuRepository.findAllById(menuIds);
+        List<Menu> menus = menuRepository.findAllByIdInAndStoreId(menuIds, request.getStoreId());
 
 
         //요청한 메뉴와 실제 조회된 메뉴의 수가 다르면 에러(없는 메뉴를 호출 할때)
         if (menus.size() != request.getItems().size()) {
             throw new MenuException(ErrorCode.MENU_NOT_FOUND);
         }
+
 
         if (menuRepository.existsByIdInAndStatus(menuIds, MenuStatus.SOLDOUT)) {
             throw new MenuException(ErrorCode.MENU_SOLD_OUT);
