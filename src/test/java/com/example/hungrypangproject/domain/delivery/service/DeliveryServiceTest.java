@@ -12,6 +12,8 @@ import com.example.hungrypangproject.domain.member.entity.MemberRoleEnum;
 import com.example.hungrypangproject.domain.member.repository.MemberRepository;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import com.example.hungrypangproject.domain.order.repository.OrderRepository;
+import com.example.hungrypangproject.domain.point.service.PointService;
+import com.example.hungrypangproject.domain.store.entity.Store;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -46,9 +48,12 @@ class DeliveryServiceTest {
     private OrderRepository orderRepository;
     @Mock
     private MemberRepository memberRepository;
+    @Mock
+    private PointService pointService;
 
     private Member raider;
     private Order order;
+    private Store store;
 
     @BeforeEach
     void setUp() {
@@ -56,8 +61,10 @@ class DeliveryServiceTest {
         given(raider.getMemberId()).willReturn(1L);
         given(raider.getNickname()).willReturn("라이더1");
 
+        store = mock(Store.class);
         order = mock(Order.class);
         given(order.getId()).willReturn(1L);
+        given(order.getStore()).willReturn(store);
     }
 
     @Nested
@@ -73,6 +80,7 @@ class DeliveryServiceTest {
             given(request.getDeliveryAddress()).willReturn("서울시 강남구");
             given(request.getDeliveryFee()).willReturn(BigDecimal.valueOf(3000));
 
+            given(store.isOwner(1L)).willReturn(true);
             given(orderRepository.findById(1L)).willReturn(Optional.of(order));
             given(deliveryRepository.existsByOrderId(1L)).willReturn(false);
             given(memberRepository.findAllByRole(MemberRoleEnum.ROLE_RAIDER)).willReturn(List.of(raider));
@@ -81,7 +89,7 @@ class DeliveryServiceTest {
             given(deliveryRepository.save(any(Delivery.class))).willReturn(savedDelivery);
 
             // when
-            CreateDeliveryResponse response = deliveryService.createDelivery(request);
+            CreateDeliveryResponse response = deliveryService.createDelivery(request, 1L);
 
             // then
             assertThat(response).isNotNull();
@@ -98,7 +106,7 @@ class DeliveryServiceTest {
             given(orderRepository.findById(999L)).willReturn(Optional.empty());
 
             // when & then - DeliveryService는 DeliveryException을 던짐
-            assertThatThrownBy(() -> deliveryService.createDelivery(request))
+            assertThatThrownBy(() -> deliveryService.createDelivery(request, 2L))
                     .isInstanceOf(DeliveryException.class);
         }
 
@@ -112,7 +120,7 @@ class DeliveryServiceTest {
             given(deliveryRepository.existsByOrderId(1L)).willReturn(true);
 
             // when & then
-            assertThatThrownBy(() -> deliveryService.createDelivery(request))
+            assertThatThrownBy(() -> deliveryService.createDelivery(request, 1L))
                     .isInstanceOf(DeliveryException.class);
         }
 
@@ -127,7 +135,7 @@ class DeliveryServiceTest {
             given(memberRepository.findAllByRole(MemberRoleEnum.ROLE_RAIDER)).willReturn(List.of());
 
             // when & then
-            assertThatThrownBy(() -> deliveryService.createDelivery(request))
+            assertThatThrownBy(() -> deliveryService.createDelivery(request,1L))
                     .isInstanceOf(DeliveryException.class);
         }
     }

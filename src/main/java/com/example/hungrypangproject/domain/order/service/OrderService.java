@@ -65,30 +65,31 @@ public class OrderService {
                         OrderItemRequest::getStock  //value
                 ));
 
-        // key값만 뽑아내서 id목록으로 한번에 조회, 쿼리가 한번만 나감
-        List<Menu> menus = menuRepository.findAllById(menuIdToStock.keySet());
+        List<Long> menuIds = new ArrayList<>(menuIdToStock.keySet());
+        // key값만 뽑아내서 id목록으로 한번에 조회, 쿼리가 한번만 나감4
+        List<Menu> menus = menuRepository.findAllByIdInAndStoreId(menuIds, request.getStoreId());
+
 
         //요청한 메뉴와 실제 조회된 메뉴의 수가 다르면 에러(없는 메뉴를 호출 할때)
         if (menus.size() != request.getItems().size()) {
             throw new MenuException(ErrorCode.MENU_NOT_FOUND);
         }
 
-        //품절 유무 확인
-        for (Menu menu : menus) {
-            if (menu.getStatus() == MenuStatus.SOLDOUT) {
-                throw new MenuException(ErrorCode.MENU_SOLD_OUT);
+
+        if (menuRepository.existsByIdInAndStatus(menuIds, MenuStatus.SOLDOUT)) {
+            throw new MenuException(ErrorCode.MENU_SOLD_OUT);
+        }
+
+
+            BigDecimal totalPrice = BigDecimal.ZERO;
+            for (Menu menu : menus) {
+                Long stock = menuIdToStock.get(menu.getId());// 수량
+                totalPrice = totalPrice.add(menu.getPrice().multiply(new BigDecimal(stock)));//가격 계산
             }
-        }
 
-        BigDecimal totalPrice = new BigDecimal(0);
-        for (Menu menu : menus) {
-            Long stock = menuIdToStock.get(menu.getId());// 수량
-            totalPrice = totalPrice.add(menu.getPrice().multiply(new BigDecimal(stock)));//가격 계산
-        }
-
-        //최소 주문
-        if(store.getMinimumOrder() != null && totalPrice.compareTo(store.getMinimumOrder()) < 0) {
-            throw new OrderException(ErrorCode.ORDER_BELOW_MINIMUM);
+            //최소 주문
+            if (store.getMinimumOrder() != null && totalPrice.compareTo(store.getMinimumOrder()) < 0) {
+                throw new OrderException(ErrorCode.ORDER_BELOW_MINIMUM);
         }
 
         //배달료 추가
@@ -106,12 +107,13 @@ public class OrderService {
             usedPointAmount = BigDecimal.ZERO;
         }
 
+        Member member = memberRepository.findById(userId).orElseThrow(
+                () -> new MemberException(ErrorCode.MEMBER_NOT_FOUND)
+        );
         //포인트 사용 부분 멤버 엔티티 추가
         if (request.getUsedPoint() != null && request.getUsedPoint().compareTo(BigDecimal.ZERO) > 0) {
-            Member findMember = memberRepository.findById(userId).orElseThrow(
-                    () -> new MemberException(ErrorCode.MEMBER_NOT_FOUND)
-            );
-            if (findMember.getTotalPoint().compareTo(request.getUsedPoint()) < 0) {// compareTo 앞 < 뒷 -> -1 반환, 앞 == 뒤 -> 0 반환, 앞 > 뒤 -> 1반환
+
+            if (member.getTotalPoint().compareTo(request.getUsedPoint()) < 0) {// compareTo 앞 < 뒷 -> -1 반환, 앞 == 뒤 -> 0 반환, 앞 > 뒤 -> 1반환
                 throw new PointException(ErrorCode.POINT_NOT_ENOUGH);
             }
 
@@ -123,7 +125,6 @@ public class OrderService {
             totalPrice = totalPrice.subtract(request.getUsedPoint());
         }
 
-        Member member = memberRepository.getReferenceById(userId);
         Order order = Order.create(totalPrice, request.getUsedPoint(), member, store);
         Order saveOrder = orderRepository.save(order);
 

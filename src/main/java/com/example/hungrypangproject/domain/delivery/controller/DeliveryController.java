@@ -4,7 +4,6 @@ import com.example.hungrypangproject.common.dto.ApiResponse;
 import com.example.hungrypangproject.domain.delivery.dto.request.CreateDeliveryRequest;
 import com.example.hungrypangproject.domain.delivery.dto.response.CreateDeliveryResponse;
 import com.example.hungrypangproject.domain.delivery.dto.response.DeliveryDetailResponse;
-import com.example.hungrypangproject.domain.delivery.repository.DeliveryRepository;
 import com.example.hungrypangproject.domain.delivery.service.DeliveryService;
 import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +22,11 @@ public class DeliveryController {
     @Secured("ROLE_SELLER")
     @PostMapping
     public ApiResponse<CreateDeliveryResponse> createDelivery(
-            @RequestBody CreateDeliveryRequest request
+            @RequestBody CreateDeliveryRequest request,
+            @AuthenticationPrincipal MemberUserDetails userDetails
     ) {
-        return ApiResponse.created(deliveryService.createDelivery(request));
+        Long sellerId = userDetails.getMember().getMemberId();
+        return ApiResponse.created(deliveryService.createDelivery(request, sellerId));
     }
 
     // 배달 완료 처리 - 라이더만 가능

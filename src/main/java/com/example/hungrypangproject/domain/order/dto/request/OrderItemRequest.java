@@ -1,14 +1,14 @@
 package com.example.hungrypangproject.domain.order.dto.request;
 
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.Getter;
 
 @Getter
 @Data
 public class OrderItemRequest {
-    @NotEmpty
+    @NotNull
     private Long menuId;
-    @NotEmpty
+    @NotNull
     private Long stock;
 }
