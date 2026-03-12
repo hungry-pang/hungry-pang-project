@@ -201,4 +201,13 @@ public class OrderService {
         order.updateStatus(request.getOrderStatus());
     }
 
+    // 주문 환불
+    @Transactional
+    public void refundOrder(Long userId, Long orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(
+                () -> new OrderException(ErrorCode.ORDER_NOT_FOUND)
+        );
+        order.refund(userId);
+    }
+
 }
