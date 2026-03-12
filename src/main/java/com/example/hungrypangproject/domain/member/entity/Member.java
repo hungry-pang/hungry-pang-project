@@ -58,7 +58,7 @@ public class Member extends BaseEntity {
         member.phoneNo = request.getPhoneNo();
         member.password = encodedPassword;
         member.totalPoint = BigDecimal.ZERO;
-        member.role = MemberRoleEnum.ROLE_USER;
+        member.role = request.getRole() != null ? request.getRole() : MemberRoleEnum.ROLE_USER;
         member.totalPriceAmount = BigDecimal.ZERO;
         return member;
     }
