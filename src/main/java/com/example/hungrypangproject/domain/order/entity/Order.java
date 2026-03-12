@@ -72,12 +72,22 @@ public class Order extends BaseEntity {
 
     public void cancel(Long userId) {
         if(!this.member.getMemberId().equals(userId)){
-            throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+                throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
         }
         if(this.orderStatus != OrderStatus.WAITING){
             throw new OrderException(ErrorCode.ORDER_NOT_CANCELABLE);
         }
         this.orderStatus = OrderStatus.CANCELLED;
+    }
+
+    public void refund(Long userId) {
+        if (!this.member.getMemberId().equals(userId)) {
+            throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+        }
+        if (this.orderStatus != OrderStatus.PREPARING) {
+            throw new OrderException(ErrorCode.ORDER_NOT_REFUNDABLE);
+        }
+        this.orderStatus = OrderStatus.REFUNDED;
     }
 
     public void updateStatus(OrderStatus newStatus) {
