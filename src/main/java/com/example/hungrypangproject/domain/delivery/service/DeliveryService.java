@@ -12,6 +12,7 @@ import com.example.hungrypangproject.domain.member.entity.MemberRoleEnum;
 import com.example.hungrypangproject.domain.member.repository.MemberRepository;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import com.example.hungrypangproject.domain.order.repository.OrderRepository;
+import com.example.hungrypangproject.domain.point.service.PointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final OrderRepository orderRepository;
     private final MemberRepository memberRepository;
+    private final PointService pointService;
 
     @Transactional
     public CreateDeliveryResponse createDelivery(CreateDeliveryRequest request){
@@ -39,11 +41,11 @@ public class DeliveryService {
         }
 
         // RAIDER 목록 조회 후 랜덤 배정
-        List<Member> raiders = memberRepository.findAllByRole(MemberRoleEnum.ROLE_RAIDER);
-        if (raiders.isEmpty()) {
+        List<Member> riders = memberRepository.findAllByRole(MemberRoleEnum.ROLE_RAIDER);
+        if (riders.isEmpty()) {
             throw new DeliveryException(ErrorCode.RAIDER_NOT_FOUND);
         }
-        Member raider = raiders.get(new Random().nextInt(raiders.size()));
+        Member raider = riders.get(new Random().nextInt(riders.size()));
 
         // PENDING으로 생성
         Delivery delivery = Delivery.create(
@@ -67,6 +69,10 @@ public class DeliveryService {
                 () -> new DeliveryException(ErrorCode.DELIVERY_NOT_FOUND)
         );
         delivery.complete(riderId);
+
+        // 배달 완료 시, 포인트 상태 변경 (HOLDING -> SAVE)
+        Order order = delivery.getOrder();
+        pointService.completePoint(order);
     }
 
     // 유저 본인 주문의 배달 상태 조회

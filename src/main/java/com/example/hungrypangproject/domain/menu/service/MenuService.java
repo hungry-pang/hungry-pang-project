@@ -128,7 +128,7 @@ public class MenuService {
                 .orElseThrow(() -> new MenuException(ErrorCode.MENU_NOT_FOUND));
     }
 
-    // 식당 조호 공통 메서드
+    // 식당 조회 공통 메서드
     // 식당이 존재하지 않으면 예외 발생
     private Store getStoreEntity(Long storeId) {
         return storeRepository.findById(storeId)

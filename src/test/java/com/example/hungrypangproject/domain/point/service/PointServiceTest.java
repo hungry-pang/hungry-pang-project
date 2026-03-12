@@ -40,7 +40,7 @@ public class PointServiceTest {
     void setUp() {
         member = Member.builder()
                 .memberId(1L)
-                .totalPoint(1000L)
+                .totalPoint(BigDecimal.valueOf(1000))
                 .build();
         order = Order.builder()
                 .id(1L)
@@ -54,7 +54,9 @@ public class PointServiceTest {
     void calculateEarnedPointsTest() {
 
         // when
-        Long earnedPoints = pointService.calculateEarnedPoints(10000L,0L);
+        BigDecimal earnedPoints = pointService.calculateEarnedPoints(
+                BigDecimal.valueOf(1000),
+                BigDecimal.valueOf(0));
 
         // then
         assertEquals(500L, earnedPoints);
@@ -64,7 +66,7 @@ public class PointServiceTest {
     @DisplayName("포인트 사용 실페 : 결제 금액의 10% 초과 시 에러")
     void usePointTest() {
         // given
-        Long useAmount = 1500L;
+        BigDecimal useAmount = BigDecimal.valueOf(1500);
 
         // when & then
         ServiceException exception = assertThrows(ServiceException.class,
@@ -78,7 +80,11 @@ public class PointServiceTest {
     @DisplayName("배달 완료 시 포인트 적립 확정")
     void completePoint_Success() {
         // given
-        Point holdingPoint = Point.register(1000L,500L,10L, PointEnum.HOLDING,member,order);
+        Point holdingPoint = Point.register(
+                BigDecimal.valueOf(1000),
+                BigDecimal.valueOf(500),
+                BigDecimal.valueOf(10),
+                PointEnum.HOLDING,member,order);
         when(pointRepository.findFirstByOrderAndStatusOrderByCreatedAtDesc(order,PointEnum.HOLDING))
                 .thenReturn(Optional.of(holdingPoint));
 

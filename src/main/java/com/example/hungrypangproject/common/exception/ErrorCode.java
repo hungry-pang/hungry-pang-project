@@ -43,8 +43,14 @@ public enum ErrorCode {
     //MEMBER
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을수 없습니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.NOT_FOUND, "중복된 이메일입니다."),
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
+    INVALID_ROLE(HttpStatus.BAD_REQUEST,"역할을 찾을 수가 없습니다."),
 
+    INVALID_PASSWORD(HttpStatus.BAD_REQUEST,"비밀번호가 일치하지 않습니다."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED,"유효하지 않은 JWT 토큰입니다."),
+
+    // Membership
+    MEMBERSHIP_NOT_GRADE(HttpStatus.BAD_REQUEST, "기본 등급 정책이 존재하지 않습니다."),
+    NOT_FOUND_USER_MEMBERSHIP(HttpStatus.NOT_FOUND, "해당하는 맴버십을 찾을 수 없습니다"),
 
     //REVIEW
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."),
@@ -70,12 +76,7 @@ public enum ErrorCode {
     WEBHOOK_INVALID_STATUS(HttpStatus.BAD_REQUEST, "유효하지 않은 결제 상태입니다."),
 
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
-
-    //Refund
-    ORDER_ALREADY_CANCELLED(HttpStatus.BAD_REQUEST, "이미 취소된 주문입니다."),
-    ORDER_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "이미 완료된 주문은 환불할 수 없습니다.");
-
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String message;

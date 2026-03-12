@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.aspectj.weaver.ast.Or;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,15 +23,15 @@ public class Point extends BaseEntity {
 
     // 현재 총 포인트
     @Column(nullable = false)
-    private Long currentlyPoint;
+    private BigDecimal currentlyPoint;
 
     // 적립 포인트
     @Column(nullable = false)
-    private Long earnPoint;
+    private BigDecimal earnPoint;
 
     // 사용 포인트
     @Column(nullable = false)
-    private Long usedPoint;
+    private BigDecimal usedPoint;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20, nullable = false)
@@ -51,18 +52,18 @@ public class Point extends BaseEntity {
     private Order order;
 
     public static Point register(
-            Long currentlyPoint,
-            Long earnPoint,
-            Long usedPoint,
+            BigDecimal currentlyPoint,
+            BigDecimal earnPoint,
+            BigDecimal usedPoint,
             PointEnum status,
             Member member,
             Order order
     ) {
         Point point = new Point();
 
-        point.currentlyPoint = (currentlyPoint != null) ? currentlyPoint:0L;
-        point.earnPoint = (earnPoint != null) ? earnPoint:0L;
-        point.usedPoint = (usedPoint != null) ? usedPoint:0L;
+        point.currentlyPoint = (currentlyPoint != null) ? currentlyPoint:BigDecimal.ZERO;
+        point.earnPoint = (earnPoint != null) ? earnPoint:BigDecimal.ZERO;
+        point.usedPoint = (usedPoint != null) ? usedPoint:BigDecimal.ZERO;
         point.status = status;
         point.member = member;
         point.order = order;

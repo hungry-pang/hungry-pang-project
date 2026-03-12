@@ -2,13 +2,15 @@ package com.example.hungrypangproject.domain.membership.entity;
 
 import com.example.hungrypangproject.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
+import java.math.BigDecimal;
 
 @Entity
 @Getter
 @Table(name = "memberships")
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Membership extends BaseEntity {
 
@@ -16,25 +18,35 @@ public class Membership extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
-    private Double earnRate;
+    private BigDecimal earnRate;
 
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private GradeEnum grade;
 
     @Column(nullable = false)
-    private Double minTotalPaidAmount;
+    private BigDecimal maxTotalPaidAmount;
 
+    @Column(nullable = false)
+    private BigDecimal minTotalPaidAmount;
+
+    @Column(nullable = false, length = 50)
+    private String description;
 
     public static Membership register(
-            Double earnRate,
+            BigDecimal earnRate,
             GradeEnum grade,
-            Double minTotalPaidAmount
+            BigDecimal maxTotalPaidAmount,
+            BigDecimal minTotalPaidAmount,
+            String description
     ) {
         Membership membership = new Membership();
 
-        membership.earnRate = 0.5;
+        membership.earnRate = earnRate;
         membership.grade = grade;
+        membership.maxTotalPaidAmount = maxTotalPaidAmount;
         membership.minTotalPaidAmount = minTotalPaidAmount;
+        membership.description = description;
 
         return membership;
     }
