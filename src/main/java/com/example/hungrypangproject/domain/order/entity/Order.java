@@ -74,7 +74,7 @@ public class Order extends BaseEntity {
         if(!this.member.getMemberId().equals(userId)){
             throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
         }
-        if(this.orderStatus != OrderStatus.WATING){
+        if(this.orderStatus != OrderStatus.PREPARING){
             throw new OrderException(ErrorCode.ORDER_NOT_CANCELABLE);
         }
         this.orderStatus = OrderStatus.REFUNDED;
