@@ -62,7 +62,7 @@ public class Order extends BaseEntity {
     ) {
         Order order = new Order();
         order.totalPrice = totalPrice;
-        order.orderStatus = OrderStatus.WATING; // 초기 상태값
+        order.orderStatus = OrderStatus.WAITING; // 초기 상태값
         order.orderAt = LocalDateTime.now();
         order.usedPoint = usedPoint;
         order.member = member;
@@ -74,7 +74,7 @@ public class Order extends BaseEntity {
         if(!this.member.getMemberId().equals(userId)){
             throw new OrderException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
         }
-        if(this.orderStatus != OrderStatus.WATING){
+        if(this.orderStatus != OrderStatus.WAITING){
             throw new OrderException(ErrorCode.ORDER_NOT_CANCELABLE);
         }
         this.orderStatus = OrderStatus.REFUNDED;

@@ -261,7 +261,7 @@ class OrderServiceTest {
             given(order.getStore()).willReturn(store);
             given(store.getStoreName()).willReturn("테스트식당");
             given(order.getTotalPrice()).willReturn(BigDecimal.valueOf(21000));
-            given(order.getOrderStatus()).willReturn(OrderStatus.WATING);
+            given(order.getOrderStatus()).willReturn(OrderStatus.WAITING);
             given(order.getOrderAt()).willReturn(null);
 
             given(orderRepository.findAllByMemberIdWithItems(1L)).willReturn(List.of(order));

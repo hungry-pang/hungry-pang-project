@@ -4,7 +4,6 @@ import com.example.hungrypangproject.common.dto.ApiResponse;
 import com.example.hungrypangproject.domain.delivery.dto.request.CreateDeliveryRequest;
 import com.example.hungrypangproject.domain.delivery.dto.response.CreateDeliveryResponse;
 import com.example.hungrypangproject.domain.delivery.dto.response.DeliveryDetailResponse;
-import com.example.hungrypangproject.domain.delivery.repository.DeliveryRepository;
 import com.example.hungrypangproject.domain.delivery.service.DeliveryService;
 import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import lombok.RequiredArgsConstructor;
