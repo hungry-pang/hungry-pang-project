@@ -71,7 +71,7 @@ class OrderServiceTest {
     void setUp() {
         member = mock(Member.class);
         given(member.getMemberId()).willReturn(1L);
-        given(member.getTotalPoint()).willReturn(0L);
+        given(member.getTotalPoint()).willReturn(BigDecimal.valueOf(0));
 
         store = mock(Store.class);
         given(store.getStatus()).willReturn(StoreStatus.OPEN);

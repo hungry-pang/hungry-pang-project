@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Getter
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class UpdateMemberResponse {
@@ -13,7 +15,7 @@ public class UpdateMemberResponse {
     private final String nickname;
     private final String address;
     private final String phoneNo;
-    private final Long point;
+    private final BigDecimal point;
 
     public static UpdateMemberResponse register(Member member) {
         return new UpdateMemberResponse(

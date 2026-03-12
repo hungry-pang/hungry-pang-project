@@ -7,6 +7,7 @@ import com.example.hungrypangproject.domain.member.dto.request.SaveMemberRequest
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -36,14 +37,14 @@ public class Member extends BaseEntity {
     private String password;
 
     @Column(nullable = false)
-    private Long totalPoint;
+    private BigDecimal totalPoint;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private MemberRoleEnum role;
 
     @Column(nullable = false)
-    private Long totalPriceAmount;
+    private BigDecimal totalPriceAmount;
 
     private String refreshToken;
 
@@ -56,9 +57,9 @@ public class Member extends BaseEntity {
         member.address = request.getAddress();
         member.phoneNo = request.getPhoneNo();
         member.password = encodedPassword;
-        member.totalPoint = 0L;
-        member.role = MemberRoleEnum.ROLE_USER;
-        member.totalPriceAmount = 0L;
+        member.totalPoint = BigDecimal.ZERO;
+        member.role = request.getRole() != null ? request.getRole() : MemberRoleEnum.ROLE_USER;
+        member.totalPriceAmount = BigDecimal.ZERO;
         return member;
     }
 
@@ -75,25 +76,28 @@ public class Member extends BaseEntity {
     }
 
     public void updateRole(MemberRoleEnum role) {
-        this.role = role;
+        if (role == null) {
+            throw new ServiceException(ErrorCode.INVALID_ROLE);
+        }
+            this.role = role;
     }
 
     // 포인트 적립 (배달 완료 후 적용)
-    public void addPoint(Long amount) {
-        if(amount == null || amount < 0) {
+    public void addPoint(BigDecimal amount) {
+        if(amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new ServiceException(ErrorCode.POINT_NOT_ENOUGH);
         }
-        this.totalPoint += amount;
+        this.totalPoint = this.totalPoint.add(amount);
     }
 
     // 포인트 사용 (차감)
-    public void minusPoint(Long amount) {
-        if(amount == null || amount < 0) {
+    public void minusPoint(BigDecimal amount) {
+        if(amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new ServiceException(ErrorCode.POINT_NOT_ENOUGH);
         }
-        if(this.totalPoint < amount) {
+        if(this.totalPoint.compareTo(amount) < 0) {
             throw new ServiceException(ErrorCode.POINT_EXCEED_LIMIT);
         }
-        this.totalPoint -= amount;
+        this.totalPoint = this.totalPoint.subtract(amount);
     }
 }

@@ -22,6 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,7 +56,14 @@ class MemberServiceTest {
     void signup_Success() {
         // given
 
-        SaveMemberRequest request = new SaveMemberRequest("테스트", "test@test.com", "강남구", "010-0000-0000", "12345678", 100L);
+        SaveMemberRequest request = new SaveMemberRequest(
+                "테스트",
+                "test@test.com",
+                "강남구",
+                "010-0000-0000",
+                "12345678",
+                MemberRoleEnum.ROLE_USER,
+                BigDecimal.valueOf(100));
         given(memberRepository.existsByEmail(request.getEmail())).willReturn(false); // 중복 아님
         given(passwordEncoder.encode(request.getPassword())).willReturn("encoded_password");
 
@@ -73,7 +81,14 @@ class MemberServiceTest {
     @DisplayName("중복 이메일 회원가입 시 예외 발생")
     void signup_Fail_DuplicateEmail() {
         // given
-        SaveMemberRequest request = new SaveMemberRequest("테스트", "test2@exmple.com", "강남구", "010-0000-0000", "12345678", 100L);
+        SaveMemberRequest request = new SaveMemberRequest(
+                "테스트",
+                "test2@exmple.com",
+                "강남구",
+                "010-0000-0000",
+                "12345678",
+                MemberRoleEnum.ROLE_USER,
+                BigDecimal.valueOf(100));
         given(memberRepository.existsByEmail(anyString())).willReturn(true); // 무조건 중복이라고 설정
 
         // when & then

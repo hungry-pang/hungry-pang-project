@@ -8,6 +8,7 @@ import com.example.hungrypangproject.domain.member.dto.respons.*;
 import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import com.example.hungrypangproject.domain.member.repository.MemberRepository;
+import com.example.hungrypangproject.domain.membership.service.MembershipService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,8 +27,18 @@ public class MemberService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final MembershipService membershipService;
 
-    // 회원가입
+    /*
+    * 1. 회원가입 : 회원가입 동시에 멤버십 등급 NORMAL 초기화
+    * 2. 로그인 : AccessToken, RefreshToken 발급
+    * 3. RefreshToke 재발급  -> 수정 필요
+    * 4. 회원정보 조회
+    * 5. 회원정보 수정
+    * 6. 역할 상태 변경
+    * 7. 로그아웃
+     */
+
     @Transactional
     public SaveMemberResponse signup (SaveMemberRequest request) {
         if(memberRepository.existsByEmail(request.getEmail())) {
@@ -38,10 +49,13 @@ public class MemberService {
         Member member = Member.register(request, encodePassword);
 
         memberRepository.save(member);
+
+        membershipService.setupMembership(member);
+        log.info("회원가입 및 멤버십 초기화 완료: {}", member.getEmail());
+
         return SaveMemberResponse.register(member);
     }
 
-    // 로그인
     @Transactional
     public LoginInfo login (LoginMemberRequest request) {
         // authentication 객체 생성 및 인증 로직 진행
@@ -57,16 +71,17 @@ public class MemberService {
         String accessToken = jwtUtil.createAccessToken(member.getEmail(), member.getRole());
         String refreshToken = jwtUtil.createRefreshToken(member.getEmail());
 
+        // Bearer 제거
+        String pureNewRefresh = jwtUtil.substringToken(refreshToken);
+
         // Refresh token DB 저장 (로그아웃 또는 재발급 시 검증용)
-        member.updateRefreshToken(refreshToken);
+        member.updateRefreshToken(pureNewRefresh);
 
         return LoginInfo.register(userDetails.getMember(),accessToken, refreshToken);
     }
 
-    // refresh token 발행
     @Transactional
     public LoginInfo refresh(String refreshToken){
-
         // Bearer 제거
         String token = jwtUtil.substringToken(refreshToken);
 
@@ -75,39 +90,66 @@ public class MemberService {
             throw new ServiceException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 유저 찾기 및 DB 리프레시 토큰 대조
+        // DB에서 유저 찾기 및 DB 리프레시 토큰 대조
         String email = jwtUtil.extractEmail(token);
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+
+        log.info("===========[재발급 프로세스 시작]===========");
+        log.info("재발급 시도 유저: {}", email);
+        log.info ("DB 저장된 RT와 일치 여부: {}", token.equals(member.getRefreshToken()));
 
         if(!token.equals(member.getRefreshToken())) {
             throw new ServiceException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 새로운 토큰 생성
+        // 새로운 토큰 생성 및 DB 업데이트
         String newAccess = jwtUtil.createAccessToken(member.getEmail(),member.getRole());
         String newRefresh = jwtUtil.createRefreshToken(member.getEmail());
 
-        member.updateRefreshToken(newRefresh);
+        String pureNewRefresh = jwtUtil.substringToken(newRefresh);
+        member.updateRefreshToken(pureNewRefresh);
+
+        log.info("새로운 RT로 DB업데이트 완료");
+        log.info("===========[재발급 프로세스 종료]===========");
 
         return LoginInfo.register(member, newAccess, newRefresh);
     }
 
-    // 회원정보 수정
+    @Transactional(readOnly = true)
+    public SearchMemberResponse findOne(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+
+        return SearchMemberResponse.register(member);
+    }
+
     @Transactional
-    public UpdateMemberResponse updateMemberResponse(Member member, UpdateMemberRequest request){
-       member.updateInfo(request.getNickname(), request.getAddress(),request.getPhoneNo());
+    public UpdateMemberResponse update (Long memberId, UpdateMemberRequest request){
+
+        Member member = memberRepository.findById(memberId)
+                        .orElseThrow(()-> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+
+        member.updateInfo(
+                request.getNickname(),
+                request.getAddress(),
+                request.getPhoneNo()
+        );
 
        return UpdateMemberResponse.register(member);
     }
 
-    // 회원정보 조회
-    @Transactional(readOnly = true)
-    public SearchMemberResponse findOne(Member member) {
-        return SearchMemberResponse.register(member);
+    @Transactional
+    public UpdateMemberResponse updateMemberRole (Long memberId, UpdateMemberRequest request) {
+
+        Member member = memberRepository.findById(memberId)
+                        .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+
+        member.updateRole(request.getRole());
+
+        return UpdateMemberResponse.register(member);
     }
 
-    // 로그아웃
     @Transactional
     public void logout(Long id) {
         Member member = memberRepository.findById(id)

@@ -4,6 +4,7 @@ import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.member.exception.MemberException;
 import com.example.hungrypangproject.domain.member.repository.MemberRepository;
+import com.example.hungrypangproject.domain.membership.service.MembershipService;
 import com.example.hungrypangproject.domain.menu.entity.Menu;
 import com.example.hungrypangproject.domain.menu.entity.MenuStatus;
 import com.example.hungrypangproject.domain.menu.exception.MenuException;
@@ -20,6 +21,8 @@ import com.example.hungrypangproject.domain.order.exception.OrderException;
 import com.example.hungrypangproject.domain.order.repository.OrderItemRepository;
 import com.example.hungrypangproject.domain.order.repository.OrderRepository;
 import com.example.hungrypangproject.domain.point.exception.PointException;
+import com.example.hungrypangproject.domain.point.repository.PointRepository;
+import com.example.hungrypangproject.domain.point.service.PointService;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import com.example.hungrypangproject.domain.store.entity.StoreStatus;
 import com.example.hungrypangproject.domain.store.exception.StoreException;
@@ -42,6 +45,9 @@ public class OrderService {
     private final StoreRepository storeRepository;
     private final MenuRepository menuRepository;
     private final OrderItemRepository orderItemRepository;
+    private final PointService pointService;
+    private final MembershipService membershipService;
+    private final PointRepository pointRepository;
 
 
     @Transactional
@@ -64,8 +70,7 @@ public class OrderService {
         List<Menu> menus = menuRepository.findAllById(menuIds);
 
 
-
-
+        //요청한 메뉴와 실제 조회된 메뉴의 수가 다르면 에러(없는 메뉴를 호출 할때)
         if (menus.size() != request.getItems().size()) {
             throw new MenuException(ErrorCode.MENU_NOT_FOUND);
         }
@@ -90,13 +95,24 @@ public class OrderService {
         if(store.getDeliveryFee() != null){
             totalPrice = totalPrice.add(store.getDeliveryFee());
         }
+
+        // 배달료를 포함하지 않은 "원가" 백업 (포인트 계산용)
+        BigDecimal priceBeforePoint = totalPrice;
+
+        BigDecimal usedPointAmount;
+        if(request.getUsedPoint() != null) {
+            usedPointAmount = request.getUsedPoint();
+        } else {
+            usedPointAmount = BigDecimal.ZERO;
+        }
+
         Member member = memberRepository.findById(userId).orElseThrow(
                 () -> new MemberException(ErrorCode.MEMBER_NOT_FOUND)
         );
         //포인트 사용 부분 멤버 엔티티 추가
         if (request.getUsedPoint() != null && request.getUsedPoint().compareTo(BigDecimal.ZERO) > 0) {
 
-            if (new BigDecimal(member.getTotalPoint()).compareTo(request.getUsedPoint()) < 0) {// compareTo 앞 < 뒷 -> -1 반환, 앞 == 뒤 -> 0 반환, 앞 > 뒤 -> 1반환
+            if (member.getTotalPoint().compareTo(request.getUsedPoint()) < 0) {// compareTo 앞 < 뒷 -> -1 반환, 앞 == 뒤 -> 0 반환, 앞 > 뒤 -> 1반환
                 throw new PointException(ErrorCode.POINT_NOT_ENOUGH);
             }
 
@@ -120,6 +136,24 @@ public class OrderService {
             orderItems.add(orderItem);
         }
         orderItemRepository.saveAll(orderItems);
+
+        /*
+        * 포인트, 멤버십 서비스 추가
+        */
+
+        // DB에 저장된 포인트 차감
+        if(usedPointAmount.compareTo(BigDecimal.ZERO) > 0) {
+            pointService.usedPoint(member, order, usedPointAmount);
+        }
+
+        // 멤버십 승급 계산 (실제 결제액)
+        BigDecimal finalAmount = order.getFinalPaymentAmount();
+        membershipService.calculateUpgrade(member,finalAmount);
+
+        // 포인트 적립 예약 (원가 기준 5%)
+        BigDecimal earnAmount = pointService.calculateEarnedPoints(priceBeforePoint, usedPointAmount);
+        pointService.reserveEarnPoint(member, order, earnAmount);
+
         return CreateOrderResponse.from(saveOrder, orderItems);
     }
 
