@@ -75,6 +75,10 @@ public enum ErrorCode {
     WEBHOOK_DUPLICATE(HttpStatus.OK, "이미 처리된 웹훅입니다."),
     WEBHOOK_INVALID_STATUS(HttpStatus.BAD_REQUEST, "유효하지 않은 결제 상태입니다."),
 
+    //Refund
+    ORDER_ALREADY_CANCELLED(HttpStatus.BAD_REQUEST, "이미 취소된 주문입니다."),
+    ORDER_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "이미 완료된 주문은 환불할 수 없습니다."),
+
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 
