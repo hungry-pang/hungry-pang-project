@@ -93,4 +93,18 @@ public class Order extends BaseEntity {
         BigDecimal used = (this.usedPoint != null) ? this.usedPoint : BigDecimal.ZERO;
         return total.subtract(used);
     }
+
+    // 환불 시 주문 상태 검증
+    public boolean isCancelled() {
+        return this.orderStatus == OrderStatus.CANCELLED;
+    }
+    public boolean isRefunded() {
+        return this.orderStatus == OrderStatus.REFUNDED;
+    }
+    public boolean isCompleted() {
+        return this.orderStatus == OrderStatus.COMPLETED;
+    }
+    public boolean isRefunable() {
+        return this.orderStatus == OrderStatus.PREPARING;
+    }
 }
