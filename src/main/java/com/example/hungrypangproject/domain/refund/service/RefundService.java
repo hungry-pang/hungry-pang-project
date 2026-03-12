@@ -144,6 +144,6 @@ public class RefundService {
 
         // 결제 및 주문 상태 변경
         payment.refund();
-        orderService.cancelOrder(payment.getOrder().getMember().getMemberId(), payment.getOrder().getId());
+        orderService.refundOrder(payment.getOrder().getMember().getMemberId(), payment.getOrder().getId());
     }
 }
