@@ -62,7 +62,7 @@ public class Order extends BaseEntity {
     ) {
         Order order = new Order();
         order.totalPrice = totalPrice;
-        order.orderStatus = OrderStatus.WATING; // 초기 상태값
+        order.orderStatus = OrderStatus.WAITING; // 초기 상태값
         order.orderAt = LocalDateTime.now();
         order.usedPoint = usedPoint;
         order.member = member;

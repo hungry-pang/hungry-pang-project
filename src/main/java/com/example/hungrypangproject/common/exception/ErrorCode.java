@@ -3,6 +3,7 @@ package com.example.hungrypangproject.common.exception;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import retrofit2.http.HTTP;
 
 @Getter
 @RequiredArgsConstructor
@@ -22,6 +23,7 @@ public enum ErrorCode {
     ORDER_NOT_CANCELABLE(HttpStatus.BAD_REQUEST, "대기 중인 주문만 취소할 수 있습니다."),
     ORDER_NOT_CHANGEABLE(HttpStatus.BAD_REQUEST, "이미 완료되거나 환불된 주문입니다."),
     ORDER_STATUS_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 주문 상태입니다."),
+    MENU_NOT_IN_STORE(HttpStatus.BAD_REQUEST, "해당 가게의 메뉴가 아닙니다."),
 
     //DELIVERY
     DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "배달을 찾을 수 없습니다."),

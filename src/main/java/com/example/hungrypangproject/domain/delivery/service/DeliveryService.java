@@ -29,11 +29,16 @@ public class DeliveryService {
     private final PointService pointService;
 
     @Transactional
-    public CreateDeliveryResponse createDelivery(CreateDeliveryRequest request){
+    public CreateDeliveryResponse createDelivery(CreateDeliveryRequest request, Long sellerId) {
 
         Order order = orderRepository.findById(request.getOrderId()).orElseThrow(
                 () -> new DeliveryException(ErrorCode.ORDER_NOT_FOUND)
         );
+
+        //본인 가게 주문인지 확인
+        if (!order.getStore().isOwner(sellerId)) {
+            throw new DeliveryException(ErrorCode.DELIVERY_FORBIDDEN);
+        }
 
         // 이미 배달 요청이 있는지 확인
         if (deliveryRepository.existsByOrderId(order.getId())) {
