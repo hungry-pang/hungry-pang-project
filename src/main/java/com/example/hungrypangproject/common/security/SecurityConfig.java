@@ -25,7 +25,6 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
 
-    // memberService 인코딩 후 주석 삭제
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -41,7 +40,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/signup", "/api/login").permitAll()
+                        .requestMatchers("/api/signup", "/api/login", "/api/refresh").permitAll()
                         .anyRequest().authenticated()
                 )
                 .build();

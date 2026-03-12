@@ -43,6 +43,7 @@ public enum ErrorCode {
     //MEMBER
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을수 없습니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.NOT_FOUND, "중복된 이메일입니다."),
+    INVALID_ROLE(HttpStatus.BAD_REQUEST,"역할을 찾을 수가 없습니다."),
 
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST,"비밀번호가 일치하지 않습니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED,"유효하지 않은 JWT 토큰입니다."),

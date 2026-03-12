@@ -2,15 +2,15 @@ package com.example.hungrypangproject.domain.membership.entity;
 
 import com.example.hungrypangproject.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 
 @Entity
 @Getter
 @Table(name = "memberships")
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Membership extends BaseEntity {
 
