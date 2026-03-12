@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.domain.payment.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,14 +14,21 @@ import lombok.NoArgsConstructor;
 public class PaymentVerifyRequest {
 
     /**
-     * PortOne에서 발급한 결제 고유 ID
+     * PortOne v2 결제 ID
      */
-    @NotBlank(message = "imp_uid는 필수입니다")
-    private String impUid;
+    @NotBlank(message = "paymentId는 필수입니다")
+    @JsonAlias({"impUid", "imp_uid"})
+    private String paymentId;
 
     /**
-     * 우리 서버에서 생성한 결제 ID (merchant_uid)
+     * 우리 서버에서 생성한 결제 ID
      */
-    @NotBlank(message = "merchant_uid는 필수입니다")
-    private String merchantUid;
+    @NotBlank(message = "dbPaymentId는 필수입니다")
+    @JsonAlias({"merchantUid", "merchant_uid"})
+    private String dbPaymentId;
+
+    /**
+     * PortOne v2 트랜잭션 ID (선택값)
+     */
+    private String txId;
 }

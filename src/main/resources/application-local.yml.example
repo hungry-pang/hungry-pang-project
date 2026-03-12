@@ -32,6 +32,8 @@ portone:
   api:
     key: ${PORTONE_API_KEY:your_portone_api_key_here}
     secret: ${PORTONE_API_SECRET:your_portone_api_secret_here}
+    base-url: ${PORTONE_API_BASE_URL:https://api.portone.io}
+    v2-secret: ${PORTONE_V2_API_SECRET:your_portone_v2_api_secret_here}
   test-mode: true
 
 # JWT 설정

@@ -20,6 +20,8 @@ portone:
   api:
     key: ${PORTONE_API_KEY:test_key}
     secret: ${PORTONE_API_SECRET:test_secret}
+    base-url: ${PORTONE_API_BASE_URL:https://api.portone.io}
+    v2-secret: ${PORTONE_V2_API_SECRET:${PORTONE_API_SECRET:test_secret}}
 
 jwt:
   secret:
