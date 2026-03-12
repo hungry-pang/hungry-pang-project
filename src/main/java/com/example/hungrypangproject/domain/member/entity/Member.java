@@ -76,7 +76,10 @@ public class Member extends BaseEntity {
     }
 
     public void updateRole(MemberRoleEnum role) {
-        this.role = role;
+        if (role == null) {
+            throw new ServiceException(ErrorCode.INVALID_ROLE);
+        }
+            this.role = role;
     }
 
     // 포인트 적립 (배달 완료 후 적용)

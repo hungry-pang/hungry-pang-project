@@ -2,6 +2,7 @@ package com.example.hungrypangproject.domain.member.controller;
 
 import com.example.hungrypangproject.domain.member.dto.request.*;
 import com.example.hungrypangproject.domain.member.dto.respons.*;
+import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import com.example.hungrypangproject.domain.member.service.MemberService;
 import jakarta.validation.Valid;
@@ -18,6 +19,16 @@ import org.springframework.web.bind.annotation.*;
 public class MemberController {
 
     private final MemberService memberService;
+
+    /*
+     * 1. 회원가입 (JWT 통과)
+     * 2. 로그인 (JWT 통과)
+     * 3. RefreshToke 새로운 토큰 발급 (JWT 통과)
+     * 4. 회원정보 조회
+     * 5. 회원정보 수정
+     * 5. 역할 상태 변경
+     * 7. 로그아웃
+     */
 
     @PostMapping("/signup")
     public ResponseEntity<SaveMemberResponse> signup (
@@ -43,7 +54,7 @@ public class MemberController {
         return ResponseEntity.ok().headers(headers).body(response);
     }
 
-    // RefreshToken
+    // RefreshToken 새로운 토큰 발급
     @GetMapping("/refresh")
     public ResponseEntity<LoginInfo> refresh (
             @RequestHeader("Refresh-Token") String refreshToken
@@ -55,10 +66,9 @@ public class MemberController {
         headers.set("Authorization", info.getAccessToken());
         headers.set("Refresh-Token", info.getRefreshToken());
 
-        return ResponseEntity.ok().headers(headers).build();
+        return ResponseEntity.ok().headers(headers).body(info);
     }
 
-    // 회원정보 조회
     @GetMapping("/members/{memberId}")
     public ResponseEntity<SearchMemberResponse> getId(
             @AuthenticationPrincipal MemberUserDetails userDetails
@@ -67,7 +77,22 @@ public class MemberController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    // Logout
+    @PatchMapping("/members/{memberId}")
+    public ResponseEntity<UpdateMemberResponse> updateMember (
+            @PathVariable Long memberId,
+            @Valid @RequestBody UpdateMemberRequest request
+    ) {
+        return ResponseEntity.ok(memberService.update(memberId,request));
+    }
+
+    @PatchMapping("/members/{memberId}/role")
+    public ResponseEntity<UpdateMemberResponse> updateMemberRole (
+            @PathVariable Long memberId,
+            @Valid @RequestBody UpdateMemberRequest request
+    ) {
+        return ResponseEntity.ok(memberService.updateMemberRole(memberId, request));
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @AuthenticationPrincipal MemberUserDetails userDetails

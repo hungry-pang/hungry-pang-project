@@ -17,7 +17,7 @@ public class MembershipController {
 
     private final MembershipService membershipService;
 
-    @GetMapping("/membership")
+    @GetMapping("/membership/{memberId}")
     public ResponseEntity<MembershipResponse> myMembership(
             @AuthenticationPrincipal MemberUserDetails userDetails
     ){
