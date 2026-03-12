@@ -24,6 +24,7 @@ public enum ErrorCode {
     ORDER_NOT_CHANGEABLE(HttpStatus.BAD_REQUEST, "이미 완료되거나 환불된 주문입니다."),
     ORDER_STATUS_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 주문 상태입니다."),
     MENU_NOT_IN_STORE(HttpStatus.BAD_REQUEST, "해당 가게의 메뉴가 아닙니다."),
+    ORDER_NOT_REFUNDABLE(HttpStatus.BAD_REQUEST, "환불할 수 없는 주문입니다."),
 
     //DELIVERY
     DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "배달을 찾을 수 없습니다."),
