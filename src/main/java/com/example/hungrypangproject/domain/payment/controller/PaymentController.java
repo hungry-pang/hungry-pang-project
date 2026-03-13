@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.domain.payment.controller;
 
+import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareRequest;
 import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareResponse;
 import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyRequest;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,11 +28,13 @@ public class PaymentController {
      */
     @PostMapping("/prepare")
     public ResponseEntity<PaymentPrepareResponse> preparePayment(
+            @AuthenticationPrincipal MemberUserDetails userDetails,
             @Valid @RequestBody PaymentPrepareRequest request) {
 
         log.info("결제 준비 요청 - orderId: {}, amount: {}", request.getOrderId(), request.getAmount());
 
-        PaymentPrepareResponse response = paymentService.preparePayment(request);
+        Long memberId = userDetails.getMember().getMemberId();
+        PaymentPrepareResponse response = paymentService.preparePayment(memberId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -40,12 +44,14 @@ public class PaymentController {
      */
     @PostMapping("/verify")
     public ResponseEntity<PaymentVerifyResponse> verifyPayment(
+            @AuthenticationPrincipal MemberUserDetails userDetails,
             @Valid @RequestBody PaymentVerifyRequest request) {
 
         log.info("결제 검증 요청 - paymentId: {}, dbPaymentId: {}, txId: {}",
                 request.getPaymentId(), request.getDbPaymentId(), request.getTxId());
 
-        PaymentVerifyResponse response = paymentService.verifyPayment(request);
+        Long memberId = userDetails.getMember().getMemberId();
+        PaymentVerifyResponse response = paymentService.verifyPayment(memberId, request);
         return ResponseEntity.ok(response);
     }
 

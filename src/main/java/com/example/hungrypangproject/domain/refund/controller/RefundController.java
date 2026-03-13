@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.domain.refund.controller;
 
+import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllRequest;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllResponse;
 import com.example.hungrypangproject.domain.refund.service.RefundService;
@@ -7,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,12 +21,14 @@ public class RefundController {
 
     @PostMapping("/{dbPaymentId}")
     public ResponseEntity<RefundAllResponse> refundAll(
+            @AuthenticationPrincipal MemberUserDetails userDetails,
             @PathVariable String dbPaymentId,
             @Valid @RequestBody RefundAllRequest refundAllRequest
     ) {
         log.info("환불 요청 - orderId: {}, reason: {}", refundAllRequest.getOrderId(), refundAllRequest.getReason());
 
-        RefundAllResponse response = refundService.refundAll(dbPaymentId, refundAllRequest);
+        Long memberId = userDetails.getMember().getMemberId();
+        RefundAllResponse response = refundService.refundAll(memberId, dbPaymentId, refundAllRequest);
         return ResponseEntity.ok(response);
     }
 }
