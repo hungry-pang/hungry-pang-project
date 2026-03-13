@@ -11,6 +11,7 @@ import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.member.entity.MemberRoleEnum;
 import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import com.example.hungrypangproject.domain.member.repository.MemberRepository;
+import com.example.hungrypangproject.domain.membership.service.MembershipService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,9 @@ class MemberServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private MembershipService membershipService;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -134,6 +138,7 @@ class MemberServiceTest {
         String email = "test@test.com";
         String newAccessToken = "Bearer new-access-token";
         String newRefreshToken = "Bearer new-refresh-token";
+        String pureNewToken = "new-refresh-token";
 
         // 테스트용 멤버 객체 (DB에 저장된 토큰 정보 포함)
         Member member = Member.builder()
@@ -150,8 +155,9 @@ class MemberServiceTest {
         given(memberRepository.findByEmail(email)).willReturn(Optional.of(member));
 
         // 새 토큰 생성 지시
-        given(jwtUtil.createAccessToken(email, MemberRoleEnum.ROLE_USER)).willReturn(newAccessToken);
-        given(jwtUtil.createRefreshToken(email)).willReturn(newRefreshToken);
+        given(jwtUtil.createAccessToken(anyString(), any())).willReturn(newAccessToken);
+        given(jwtUtil.createRefreshToken(anyString())).willReturn(newRefreshToken);
+        given(jwtUtil.substringToken(newRefreshToken)).willReturn(pureNewToken);
 
         // when)
         LoginInfo result = memberService.refresh(oldRefreshTokenWithBearer);
@@ -161,7 +167,7 @@ class MemberServiceTest {
         assertThat(result.getRefreshToken()).isEqualTo(newRefreshToken);
 
         // DB(멤버 객체)의 리프레시 토큰이 새것으로 업데이트 되었는지 확인
-        assertThat(member.getRefreshToken()).isEqualTo(newRefreshToken);
+        assertThat(member.getRefreshToken()).isEqualTo(pureNewToken);
     }
 
     @Test
