@@ -15,10 +15,4 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     // dbPaymentId로 결제 조회
     Optional<Payment> findByDbPaymentId(String dbPaymentId);
-
-    // PortOne paymentId로 결제 조회
-    Optional<Payment> findByPaymentId(String paymentId);
-
-    // 주문으로 결제 목록 조회
-    List<Payment> findByOrder(Order order);
 }

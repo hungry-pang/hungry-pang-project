@@ -44,24 +44,45 @@ public class RefundService {
     private String portOneV2Secret;
 
     @Transactional
-    public RefundAllResponse refundAll(String dbPaymentId, @Valid RefundAllRequest refundAllRequest) {
+    public RefundAllResponse refundAll(Long memberId, String dbPaymentId, @Valid RefundAllRequest refundAllRequest) {
         // 1) 결제 조회 및 환불 가능 여부 검증
         Payment payment = paymentRepository.findByDbPaymentId(dbPaymentId)
                 .orElseThrow(() -> new RefundException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 본인 결제인지 검증
+        if (!payment.getOrder().getMember().getMemberId().equals(memberId)) {
+            throw new RefundException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+        }
+
+        // 요청 주문 ID와 결제의 주문 ID가 일치하는지 검증
+        if (!payment.getOrder().getId().equals(refundAllRequest.getOrderId())) {
+            throw new RefundException(ErrorCode.PAYMENT_INFO_MISMATCH);
+        }
 
         validateRefundable(payment);
 
         // 2) 환불 요청 이력 저장
         String refundGroupId = "rf-grp" + UUID.randomUUID();
-        refundHistoryService.saveRequestHistory(payment.getId(), payment.getTotalAmount(), refundAllRequest.getReason(), refundGroupId);
+        String reason = refundAllRequest.getReason();
+        refundHistoryService.saveRequestHistory(payment.getId(), payment.getTotalAmount(), reason, refundGroupId);
 
-        // 3) PortOne 환불 요청
-        String portOneRefundId = requestPortOneRefund(payment, refundAllRequest);
+        String portOneRefundId = null;
 
-        // 4) 환불 완료 처리
-        completeRefund(payment, refundAllRequest.getReason(), portOneRefundId, refundGroupId);
+        try {
+            // 3) PortOne 환불 요청
+            portOneRefundId = requestPortOneRefund(payment, refundAllRequest);
 
-        return new RefundAllResponse(payment.getOrder().getId(), payment.getOrder().getOrderNum());
+            // 4) 환불 완료 처리
+            completeRefund(payment, reason, portOneRefundId, refundGroupId);
+
+            return new RefundAllResponse(payment.getOrder().getId(), payment.getOrder().getOrderNum());
+        } catch (RefundException e) {
+            saveFailHistorySafely(payment, reason, portOneRefundId, refundGroupId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            saveFailHistorySafely(payment, reason, portOneRefundId, refundGroupId, e.getMessage());
+            throw new RefundException(ErrorCode.PORTONE_API_ERROR, e.getMessage());
+        }
     }
 
     private String requestPortOneRefund(Payment payment, RefundAllRequest refundAllRequest) {
@@ -105,8 +126,6 @@ public class RefundService {
             // cancellationId가 없으면 dbPaymentId + "_cancel" 을 대체값으로 사용
             return payment.getDbPaymentId() + "_cancel";
 
-        } catch (RefundException e) {
-            throw e;
         } catch (Exception e) {
             throw new RefundException(ErrorCode.PORTONE_API_ERROR, e.getMessage());
         }
@@ -130,7 +149,7 @@ public class RefundService {
     }
 
     // 환불 완료 로직
-    public void completeRefund(Payment payment, String reason, String portOneRefundId, String refundGroupId) {
+    private void completeRefund(Payment payment, String reason, String portOneRefundId, String refundGroupId) {
         Refund completedRefund = Refund.createCompleted(
                 payment.getId(),
                 payment.getTotalAmount(),
@@ -145,5 +164,22 @@ public class RefundService {
         // 결제 및 주문 상태 변경
         payment.refund();
         orderService.refundOrder(payment.getOrder().getMember().getMemberId(), payment.getOrder().getId());
+    }
+
+    private void saveFailHistorySafely(Payment payment, String reason, String portOneRefundId, String refundGroupId, String failureMessage) {
+        String failReason = reason + " | 실패원인: " + failureMessage;
+
+        try {
+            refundHistoryService.saveFailHistory(
+                    payment.getId(),
+                    payment.getTotalAmount(),
+                    failReason,
+                    portOneRefundId,
+                    refundGroupId
+            );
+        } catch (Exception historyException) {
+            log.error("환불 실패 이력 저장 중 예외 발생 - paymentId: {}, refundGroupId: {}",
+                    payment.getId(), refundGroupId, historyException);
+        }
     }
 }

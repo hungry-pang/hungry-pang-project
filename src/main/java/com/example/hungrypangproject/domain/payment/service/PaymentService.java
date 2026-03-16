@@ -61,12 +61,16 @@ public class PaymentService {
      * 4. Payment 엔티티 생성 및 저장
      */
     @Transactional
-    public PaymentPrepareResponse preparePayment(PaymentPrepareRequest request) {
+    public PaymentPrepareResponse preparePayment(Long memberId, PaymentPrepareRequest request) {
         log.info("결제 준비 시작 - orderId: {}, amount: {}", request.getOrderId(), request.getAmount());
 
         // 1. 주문 조회
         Order order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new PaymentException(ErrorCode.ORDER_NOT_FOUND));
+
+        if (!order.getMember().getMemberId().equals(memberId)) {
+            throw new PaymentException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+        }
 
         // 2. 결제 금액 검증
         BigDecimal pointsToUse = request.getPointsToUse() != null ? request.getPointsToUse() : BigDecimal.ZERO;
@@ -135,13 +139,18 @@ public class PaymentService {
      * 7. 결제 성공 처리 및 주문 상태 변경
      */
     @Transactional
-    public PaymentVerifyResponse verifyPayment(PaymentVerifyRequest request) {
+    public PaymentVerifyResponse verifyPayment(Long memberId, PaymentVerifyRequest request) {
         log.info("결제 검증 시작 - paymentId: {}, dbPaymentId: {}, txId: {}",
                 request.getPaymentId(), request.getDbPaymentId(), request.getTxId());
 
         // 1. DB에서 결제 정보 조회
         Payment dbPayment = paymentRepository.findByDbPaymentId(request.getDbPaymentId())
                 .orElseThrow(() -> new PaymentException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 본인 결제인지 검증
+        if (!dbPayment.getOrder().getMember().getMemberId().equals(memberId)) {
+            throw new PaymentException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+        }
 
         // 2. 멱등성 체크 (이미 처리된 결제인지)
         if (dbPayment.getStatus() == PaymentStatus.PAID) {
@@ -201,8 +210,6 @@ public class PaymentService {
                     OrderStatus.PREPARING.getDescription()
             );
 
-        } catch (PaymentException e) {
-            throw e;
         } catch (IOException e) {
             log.error("PortOne v2 API 응답 파싱 중 예외 발생", e);
             dbPayment.failPayment();
@@ -335,7 +342,7 @@ public class PaymentService {
 
             com.siot.IamportRestClient.response.Payment portOnePayment = portOneResponse.getResponse();
 
-            // 5. DB 처리 (별도 트랜잭션으로 실행)
+            // 5. DB 처리
             processPaymentData(webhookId, portOnePayment, request.getImp_uid());
 
             // 6. 웹훅 처리 완료 표시 (별도 트랜잭션)
@@ -377,13 +384,9 @@ public class PaymentService {
     }
 
     /**
-     * 결제 데이터 처리 (별도 트랜잭션)
-     *
-     * PortOne API 조회 후 DB 처리를 별도 트랜잭션으로 분리
-     * 외부 API 호출 중 DB 커넥션을 점유하지 않도록 보장
+     * PortOne 결제 응답과 DB 결제 데이터를 비교해 최종 상태를 반영한다.
      */
-    @Transactional
-    public void processPaymentData(Long webhookId,
+    private void processPaymentData(Long webhookId,
                                     com.siot.IamportRestClient.response.Payment portOnePayment,
                                     String impUid) {
         // 1. DB에서 결제 정보 조회

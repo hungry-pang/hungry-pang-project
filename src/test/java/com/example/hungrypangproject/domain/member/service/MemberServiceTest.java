@@ -18,12 +18,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -182,6 +180,11 @@ class MemberServiceTest {
         String requestToken = "Bearer wrong-token";
         String pureToken = "wrong-token";
         String email = "test@test.com";
+
+        Member member = Member.builder()
+                .email(email)
+                .build();
+        member.updateRefreshToken("original-token-in-db"); // DB에는 다른 토큰이 있음
 
         given(jwtUtil.substringToken(anyString())).willReturn(pureToken);
         given(jwtUtil.validateToken(anyString())).willReturn(true);
