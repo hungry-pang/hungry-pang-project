@@ -21,6 +21,7 @@ import java.io.IOException;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final RedisUtil redisUtil;
     private final UserDetailsService userDetailsService;
 
     @Override
@@ -54,6 +55,15 @@ public class JwtFilter extends OncePerRequestFilter {
 
             // 만료되었다면 401 에러 후 Refresh Token 사용 유도
             log.warn("JWT 토큰이 유효하지 않습니다. URL: {}", requestURL);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("{\"message\": \"토큰이 유효하지 않습니다.\"}");
+            return;
+        }
+
+        // 블랙리스트 (로그아웃 된 토큰) 검사
+        if(redisUtil.isBlackList(jwt)) {
+            log.warn("블랙리스트에 등록된 토큰입니다.");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setCharacterEncoding("UTF-8");
             response.getWriter().write("{\"message\": \"토큰이 유효하지 않습니다.\"}");

@@ -18,14 +18,14 @@ import java.util.Date;
 public class JwtUtil {
 
      //기본 셋팅
-    public static final String BEARER_PREFIX = "Bearer ";
-    private static final long ACCESS_TOKEN_TIME = 60 * 60 * 1000L; // token 발급 시간 60분
-    private static final long REFRESH_TOKEN_TIME = 14 * 24 * 60 * 60 * 1000L; // Refresh token 발급 2주
-
-//    // 테스트용
 //    public static final String BEARER_PREFIX = "Bearer ";
-//    private static final long ACCESS_TOKEN_TIME = 30 * 1000L; // token 발급 시간 30초
-//    private static final long REFRESH_TOKEN_TIME = 3 * 60 * 1000L; // Refresh token 발급 2분
+//    private static final long ACCESS_TOKEN_TIME = 60 * 60 * 1000L; // token 발급 시간 60분
+//    private static final long REFRESH_TOKEN_TIME = 14 * 24 * 60 * 60 * 1000L; // Refresh token 발급 2주
+
+    // 테스트용
+    public static final String BEARER_PREFIX = "Bearer ";
+    private static final long ACCESS_TOKEN_TIME = 5 * 60 * 1000L; // token 발급 시간 30초
+    private static final long REFRESH_TOKEN_TIME = 6 * 60 * 1000L; // Refresh token 발급 2분
 
     private SecretKey secretKey;
     private JwtParser jwtparser;
@@ -92,6 +92,22 @@ public class JwtUtil {
             log.error("JWT 토큰이 비어있거나 잘못됐습니다.: {}", e.getMessage());
         }
         return false;
+    }
+
+    // Redis 저장 RefreshToken 생명주기 연장
+    public long getRefreshExpiration() {
+        return REFRESH_TOKEN_TIME;
+    }
+
+    // 블랙리스트 RefreshToken 유효시간 계산
+    public long getExpiration(String token) {
+        try {
+            Date expiration = getClaims(token).getExpiration();
+            long now = new Date().getTime();
+            return (expiration.getTime() - now);
+        } catch (ExpiredJwtException e) {
+            return 0;
+        }
     }
 
     // 토큰에 있는 내용 꺼내기 (정보 추출용)

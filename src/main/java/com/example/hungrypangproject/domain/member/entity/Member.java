@@ -21,6 +21,9 @@ public class Member extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long memberId;
 
+    @Version
+    private Long version;
+
     @Column(nullable = false, length = 20)
     private String nickname;
 
