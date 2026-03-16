@@ -20,20 +20,25 @@ public class Payment {
     private Long id;
 
     // 서버에서 생성한 ID (결제 요청 시 사용)
+    @Column(name = "db_payment_id", nullable = false, unique = true, length = 100)
     private String dbPaymentId;
 
     // PortOne에서 발급받은 영수증 ID (결제 완료 후 기록)
+    @Column(name = "payment_id", unique = true, length = 100)
     private String paymentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
+    @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
+    @Column(name = "points_to_use", nullable = false)
     private BigDecimal pointsToUse;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
     private PaymentStatus status;
 
     @Builder
