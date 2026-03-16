@@ -7,8 +7,7 @@ public interface WebhookRepository extends JpaRepository<Webhook, Long> {
 
 
     /**
-     * imp_uid + eventStatus 조합으로 웹훅 존재 여부 확인
-     * 같은 imp_uid라도 다른 상태(paid, cancelled 등)의 웹훅은 별도로 처리
+     * imp_uid(webhookId) 단일 기준으로 웹훅 존재 여부 확인
      */
-    boolean existsByWebhookIdAndEventStatus(String webhookId, String eventStatus);
+    boolean existsByWebhookId(String webhookId);
 }

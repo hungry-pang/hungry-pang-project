@@ -26,14 +26,13 @@ public class WebhookService {
     private final WebhookRepository webhookRepository;
 
     /**
-     * 중복 웹훅 체크
+     * 중복 웹훅 체크 (imp_uid 단일 기준)
      *
      * @param impUid 포트원 결제 고유번호
-     * @param status 결제 상태
      * @return 중복 여부
      */
-    public boolean isDuplicateWebhook(String impUid, String status) {
-        return webhookRepository.existsByWebhookIdAndEventStatus(impUid, status);
+    public boolean isDuplicateWebhook(String impUid) {
+        return webhookRepository.existsByWebhookId(impUid);
     }
 
     /**
@@ -54,7 +53,7 @@ public class WebhookService {
                 .status(WebhookStatus.RECEIVED)
                 .build();
 
-        Webhook savedWebhook = webhookRepository.save(webhook);
+                        Webhook savedWebhook = webhookRepository.save(webhook);
         log.info("웹훅 기록 저장 완료 - webhookId: {}, impUid: {}, status: {}",
                 savedWebhook.getId(), request.getImp_uid(), request.getStatus());
 
