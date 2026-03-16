@@ -11,6 +11,9 @@ import com.example.hungrypangproject.domain.store.entity.Store;
 import com.example.hungrypangproject.domain.store.exception.StoreException;
 import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,7 @@ public class StoreService {
     private final StoreRepository storeRepository;
 
     // 식당 등록
+    @CacheEvict(value = "stores", allEntries = true)
     public StoreResponse createStore(StoreCreateRequest request, Member member) {
 
         // 판매자 권한 검증
@@ -47,6 +51,7 @@ public class StoreService {
     }
 
     // 식당 목록 조회 (검색 기능)
+    @Cacheable(value = "stores", key = "#keyword + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<StoreResponse> getStores(String keyword, Pageable pageable) {
         Page<Store> stores;
@@ -61,6 +66,7 @@ public class StoreService {
     }
 
     // 식당 단건 조회
+    @Cacheable(value = "store", key = "#storeId")
     @Transactional(readOnly = true)
     public StoreResponse getStore(Long storeId) {
         Store store = findStoreById(storeId);
@@ -68,6 +74,7 @@ public class StoreService {
     }
 
     // 식당 정보 수정
+    @Caching(evict = {@CacheEvict(value = "stores", allEntries = true), @CacheEvict(value = "store", key = "#storeId")})
     public void updateStore(Long storeId, StoreUpdateRequest request, Member member) {
 
         // 판매자 권한 검증
@@ -88,6 +95,7 @@ public class StoreService {
     }
 
     // 식당 영업 상태 변경
+    @Caching(evict = {@CacheEvict(value = "stores", allEntries = true), @CacheEvict(value = "store", key = "#storeId")})
     public void updateStoreStatus(Long storeId, StoreStatusUpdateRequest request, Member member) {
 
         // 판매자 권한 검증
@@ -104,6 +112,7 @@ public class StoreService {
     }
 
     // 식당 삭제
+    @Caching(evict = {@CacheEvict(value = "stores", allEntries = true), @CacheEvict(value = "store", key = "#storeId")})
     public void deleteStore(Long storeId, Member member) {
 
         // 판매자 권한 검증
