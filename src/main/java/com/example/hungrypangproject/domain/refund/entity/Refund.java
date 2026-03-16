@@ -20,18 +20,27 @@ public class Refund {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "payment_id", nullable = false)
     private Long paymentId;
 
+    @Column(name = "refund_amount", nullable = false)
     private BigDecimal refundAmount;
 
+    @Column(nullable = false, length = 200)
     private String reason;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
     private RefundStatus status;
 
     // PortOne에서 반환하는 환불 ID
+    @Column(name = "portone_refund_id", length = 100)
     private String portOneRefundId;
+
+    @Column(name = "refund_group_id", nullable = false, length = 100)
     private String refundGroupId;
+
+    @Column(name = "refunded_at", nullable = false)
     private LocalDateTime refundedAt;
 
     @Builder

@@ -17,14 +17,20 @@ public class Webhook {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "webhook_id", nullable = false, unique = true, length = 100)
     private String webhookId;
 
+    @Column(name = "payment_id", nullable = false, length = 100)
     private String paymentId;
+
+    @Column(name = "event_status", nullable = false, length = 30)
     private String eventStatus;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
     private WebhookStatus status;
 
+    @Column(name = "received_at", nullable = false)
     private LocalDateTime receivedAt;
 
     @Builder
