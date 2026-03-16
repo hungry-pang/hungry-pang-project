@@ -18,6 +18,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -107,16 +111,19 @@ public class StoreServiceTest {
     @DisplayName("식당 목록 조회 성공 - 검색어가 있으면 이름으로 검색")
     void getStores_Success_WithKeyword() {
         // given
-        when(storeRepository.findByStoreNameContaining("치킨"))
-                .thenReturn(List.of(store));
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Store> storePage = new PageImpl<>(List.of(store), pageable, 1);
+
+        when(storeRepository.findByStoreNameContaining("치킨", pageable))
+                .thenReturn(storePage);
 
         // when
-        List<StoreResponse> result = storeService.getStores("치킨");
+        Page<StoreResponse> result = storeService.getStores("치킨", pageable);
 
         // then
-        assertEquals(1, result.size());
-        verify(storeRepository, times(1)).findByStoreNameContaining("치킨");
-        verify(storeRepository, never()).findAll();
+        assertEquals(1, result.getContent().size());
+        verify(storeRepository, times(1)).findByStoreNameContaining("치킨", pageable);
+        verify(storeRepository, never()).findAll(any(Pageable.class));
     }
 
     @Test
