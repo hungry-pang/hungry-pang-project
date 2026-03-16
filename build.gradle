@@ -46,6 +46,10 @@ dependencies {
 
     // PortOne
     implementation 'com.github.iamport:iamport-rest-client-java:0.2.23'
+
+    // Cache
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
 }
 
 tasks.named('test') {

@@ -9,6 +9,8 @@ import com.example.hungrypangproject.domain.store.dto.response.StoreResponse;
 import com.example.hungrypangproject.domain.store.service.StoreService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,11 +38,11 @@ public class StoreController {
 
     // 식당 목록 조회 (검색 기능)
     @GetMapping
-    public ApiResponse<List<StoreResponse>> getStores(
-            @RequestParam(required = false) String keyword
+    public ApiResponse<Page<StoreResponse>> getStores(
+            @RequestParam(required = false) String keyword,
+            Pageable pageable
     ) {
-        // keyword가 있으면 검색, 없으면 전체 조회
-        return ApiResponse.ok(storeService.getStores(keyword));
+        return ApiResponse.ok(storeService.getStores(keyword, pageable));
     }
 
     // 식당 단건 조회

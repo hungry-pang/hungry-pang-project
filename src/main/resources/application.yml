@@ -16,6 +16,10 @@ spring:
       hibernate:
         format_sql: true
 
+  cache:
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=10s
+
 portone:
   api:
     key: ${PORTONE_API_KEY:test_key}

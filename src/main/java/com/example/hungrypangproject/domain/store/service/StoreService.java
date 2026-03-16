@@ -11,6 +11,8 @@ import com.example.hungrypangproject.domain.store.entity.Store;
 import com.example.hungrypangproject.domain.store.exception.StoreException;
 import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,22 +48,16 @@ public class StoreService {
 
     // 식당 목록 조회 (검색 기능)
     @Transactional(readOnly = true)
-    public List<StoreResponse> getStores(String keyword) {
-        List<Store> stores;
+    public Page<StoreResponse> getStores(String keyword, Pageable pageable) {
+        Page<Store> stores;
 
-        // 검색어가 없으면 전체 조회
         if (keyword == null || keyword.isBlank()) {
-            stores = storeRepository.findAll();
-        }
-        // 검색어가 있으면 이름 기준 검색
-        else {
-            stores = storeRepository.findByStoreNameContaining(keyword);
+            stores = storeRepository.findAll(pageable);
+        } else {
+            stores = storeRepository.findByStoreNameContaining(keyword, pageable);
         }
 
-        // Entity → Response DTO 변환
-        return stores.stream()
-                .map(StoreResponse::from)
-                .toList();
+        return stores.map(StoreResponse::from);
     }
 
     // 식당 단건 조회
