@@ -40,6 +40,9 @@ class MemberServiceTest {
     private MemberRepository memberRepository;
 
     @Mock
+    private  MemberCacheService memberCacheService;
+
+    @Mock
     private MembershipService membershipService;
 
     @Mock
@@ -130,7 +133,7 @@ class MemberServiceTest {
 
     //  리프레시 토큰 테스트
     @Test
-    @DisplayName("리프레시 토큰 재발급 성공")
+    @DisplayName("Redis 리프레시 토큰 재발급 성공")
     void refresh_Success() {
         // given
         String oldRefreshTokenWithBearer = "Bearer old-refresh-token";
@@ -138,26 +141,25 @@ class MemberServiceTest {
         String email = "test@test.com";
         String newAccessToken = "Bearer new-access-token";
         String newRefreshToken = "Bearer new-refresh-token";
-        String pureNewToken = "new-refresh-token";
 
-        // 테스트용 멤버 객체 (DB에 저장된 토큰 정보 포함)
         Member member = Member.builder()
                 .email(email)
                 .role(MemberRoleEnum.ROLE_USER)
                 .build();
-        // 멤버 객체에 리프레시 토큰이 저장되어 있다고 가정
-        member.updateRefreshToken(pureToken);
 
         // Mock 시뮬레이션 시작
         given(jwtUtil.substringToken(oldRefreshTokenWithBearer)).willReturn(pureToken);
         given(jwtUtil.validateToken(pureToken)).willReturn(true);
         given(jwtUtil.extractEmail(pureToken)).willReturn(email);
+
+        // Redis에서 저장된 토큰 가져오기
+        given(memberCacheService.getRefreshToken(email)).willReturn(oldRefreshTokenWithBearer);
+
         given(memberRepository.findByEmail(email)).willReturn(Optional.of(member));
 
         // 새 토큰 생성 지시
-        given(jwtUtil.createAccessToken(anyString(), any())).willReturn(newAccessToken);
-        given(jwtUtil.createRefreshToken(anyString())).willReturn(newRefreshToken);
-        given(jwtUtil.substringToken(newRefreshToken)).willReturn(pureNewToken);
+        given(jwtUtil.createAccessToken(email, MemberRoleEnum.ROLE_USER)).willReturn(newAccessToken);
+        given(jwtUtil.createRefreshToken(email)).willReturn(newRefreshToken);
 
         // when)
         LoginInfo result = memberService.refresh(oldRefreshTokenWithBearer);
@@ -165,13 +167,14 @@ class MemberServiceTest {
         // then)
         assertThat(result.getAccessToken()).isEqualTo(newAccessToken);
         assertThat(result.getRefreshToken()).isEqualTo(newRefreshToken);
+        assertThat(result).isNotNull();
 
-        // DB(멤버 객체)의 리프레시 토큰이 새것으로 업데이트 되었는지 확인
-        assertThat(member.getRefreshToken()).isEqualTo(pureNewToken);
+        // redis에 새로운 토큰이 저장되었는지 검증
+        verify(memberCacheService, times(1)).saveRefreshToken(eq(email),eq(newRefreshToken), anyLong());
     }
 
     @Test
-    @DisplayName("DB의 리프레시 토큰과 일치하지 않으면 예외 발생")
+    @DisplayName("Redis의 리프레시 토큰과 일치하지 않으면 예외 발생")
     void refresh_Fail_TokenMismatch() {
         // given
         String requestToken = "Bearer wrong-token";
@@ -186,7 +189,9 @@ class MemberServiceTest {
         given(jwtUtil.substringToken(anyString())).willReturn(pureToken);
         given(jwtUtil.validateToken(anyString())).willReturn(true);
         given(jwtUtil.extractEmail(anyString())).willReturn(email);
-        given(memberRepository.findByEmail(email)).willReturn(Optional.of(member));
+
+        // redis에 다른 토큰이 있다고 가정
+        given(memberCacheService.getRefreshToken(email)).willReturn("Bearer different-token");
 
         // when & then
         assertThatThrownBy(() -> memberService.refresh(requestToken))
