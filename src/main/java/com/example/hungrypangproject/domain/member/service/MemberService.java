@@ -2,6 +2,7 @@ package com.example.hungrypangproject.domain.member.service;
 
 import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.common.exception.ServiceException;
+import com.example.hungrypangproject.common.security.RedisUtil;
 import com.example.hungrypangproject.common.security.JwtUtil;
 import com.example.hungrypangproject.domain.member.dto.request.*;
 import com.example.hungrypangproject.domain.member.dto.respons.*;
@@ -18,6 +19,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+
 @Slf4j(topic = "MemberService")
 @Service
 @RequiredArgsConstructor
@@ -28,20 +31,23 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final MembershipService membershipService;
+    private final RedisUtil redisUtil;
+    private final MemberCacheService memberCacheService;
 
     /*
-    * 1. 회원가입 : 회원가입 동시에 멤버십 등급 NORMAL 초기화
-    * 2. 로그인 : AccessToken, RefreshToken 발급
-    * 3. RefreshToke 재발급  -> 수정 필요
-    * 4. 회원정보 조회
-    * 5. 회원정보 수정
-    * 6. 역할 상태 변경
-    * 7. 로그아웃
+     * 1. 회원가입 : 회원가입 동시에 멤버십 등급 NORMAL 초기화
+     * 2. 로그인 : AccessToken, RefreshToken 발급
+     * 3. RefreshToke 재발급  -> 수정 필요
+     * 4. 회원정보 조회
+     * 5. 회원정보 수정
+     * 6. 역할 상태 변경
+     * 7. 로그아웃
+     * 8. 캐시 조회
      */
 
     @Transactional
-    public SaveMemberResponse signup (SaveMemberRequest request) {
-        if(memberRepository.existsByEmail(request.getEmail())) {
+    public SaveMemberResponse signup(SaveMemberRequest request) {
+        if (memberRepository.existsByEmail(request.getEmail())) {
             throw new ServiceException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
@@ -57,7 +63,7 @@ public class MemberService {
     }
 
     @Transactional
-    public LoginInfo login (LoginMemberRequest request) {
+    public LoginInfo login(LoginMemberRequest request) {
         // authentication 객체 생성 및 인증 로직 진행
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
@@ -71,46 +77,58 @@ public class MemberService {
         String accessToken = jwtUtil.createAccessToken(member.getEmail(), member.getRole());
         String refreshToken = jwtUtil.createRefreshToken(member.getEmail());
 
+        // Redis에 RefreshToken 저장
+        long refreshExpiration = jwtUtil.getRefreshExpiration();
+        memberCacheService.saveRefreshToken(member.getEmail(), refreshToken, refreshExpiration);
+
         // Bearer 제거
         String pureNewRefresh = jwtUtil.substringToken(refreshToken);
 
         // Refresh token DB 저장 (로그아웃 또는 재발급 시 검증용)
         member.updateRefreshToken(pureNewRefresh);
 
-        return LoginInfo.register(userDetails.getMember(),accessToken, refreshToken);
+        return LoginInfo.register(member, accessToken, refreshToken);
     }
 
     @Transactional
-    public LoginInfo refresh(String refreshToken){
+    public LoginInfo refresh(String refreshToken) {
+
         // Bearer 제거
         String token = jwtUtil.substringToken(refreshToken);
 
         // jwtUtil 인스턴스를 사용한 유효성 검사
-        if(!jwtUtil.validateToken(token)) {
+        if (!jwtUtil.validateToken(token)) {
             throw new ServiceException(ErrorCode.INVALID_TOKEN);
         }
 
-        // DB에서 유저 찾기 및 DB 리프레시 토큰 대조
+        // Redis 에서 유저 찾기 및 리프레시 토큰 대조
         String email = jwtUtil.extractEmail(token);
+        String savedToken = memberCacheService.getRefreshToken(email);
+
+        if (savedToken == null || !savedToken.equals(refreshToken)) {
+            throw new ServiceException(ErrorCode.INVALID_TOKEN);
+        }
+
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
 
         log.info("===========[재발급 프로세스 시작]===========");
         log.info("재발급 시도 유저: {}", email);
-        log.info ("DB 저장된 RT와 일치 여부: {}", token.equals(member.getRefreshToken()));
+        log.info("Redis에 저장된 RT와 일치 여부: {}", refreshToken.equals(savedToken));
 
-        if(!token.equals(member.getRefreshToken())) {
+        if (savedToken == null || !savedToken.equals(refreshToken)) {
             throw new ServiceException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 새로운 토큰 생성 및 DB 업데이트
-        String newAccess = jwtUtil.createAccessToken(member.getEmail(),member.getRole());
+        // 새로운 Access 및 Refresh 토큰 생성
+        String newAccess = jwtUtil.createAccessToken(member.getEmail(), member.getRole());
         String newRefresh = jwtUtil.createRefreshToken(member.getEmail());
 
-        String pureNewRefresh = jwtUtil.substringToken(newRefresh);
-        member.updateRefreshToken(pureNewRefresh);
+        // Redis에 새로운 RefreshToken 업데이트 (기존 토큰 덮어쓰기)
+        long refreshExpiration = jwtUtil.getRefreshExpiration();
+        memberCacheService.saveRefreshToken(email, newRefresh, refreshExpiration);
 
-        log.info("새로운 RT로 DB업데이트 완료");
+        log.info("새로운 RT로 Redis 업데이트 완료");
         log.info("===========[재발급 프로세스 종료]===========");
 
         return LoginInfo.register(member, newAccess, newRefresh);
@@ -125,10 +143,10 @@ public class MemberService {
     }
 
     @Transactional
-    public UpdateMemberResponse update (Long memberId, UpdateMemberRequest request){
+    public UpdateMemberResponse update(Long memberId, UpdateMemberRequest request) {
 
         Member member = memberRepository.findById(memberId)
-                        .orElseThrow(()-> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
 
         member.updateInfo(
                 request.getNickname(),
@@ -136,14 +154,14 @@ public class MemberService {
                 request.getPhoneNo()
         );
 
-       return UpdateMemberResponse.register(member);
+        return UpdateMemberResponse.register(member);
     }
 
     @Transactional
-    public UpdateMemberResponse updateMemberRole (Long memberId, UpdateMemberRequest request) {
+    public UpdateMemberResponse updateMemberRole(Long memberId, UpdateMemberRequest request) {
 
         Member member = memberRepository.findById(memberId)
-                        .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
 
         member.updateRole(request.getRole());
 
@@ -151,12 +169,21 @@ public class MemberService {
     }
 
     @Transactional
-    public void logout(Long id) {
-        Member member = memberRepository.findById(id)
-                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+    public void logout(String accessToken, String email) {
 
-        member.updateRefreshToken(null);
-        log.info("{} 사용자가 로그아웃되었습니다", member.getEmail());
+        String token = jwtUtil.substringToken(accessToken);
+        memberCacheService.deleteRefreshToken(email);
+
+        try {
+            long expiration = jwtUtil.getExpiration(token);
+            log.info("===[디버깅] 추출된 만료 시간 숫자: {} ===",expiration);
+
+            if (expiration > 0) {
+                redisUtil.setBlackList(token, "Logout", Duration.ofMillis(expiration));
+                log.info("[블랙리스트 등록] 사용자가 로그아웃하였습니다. 남은 시간: {}ms", expiration);
+            }
+        } catch (Exception e){
+            log.info("이미 만료된 토큰입니다.");
+            }
+        }
     }
-
-}

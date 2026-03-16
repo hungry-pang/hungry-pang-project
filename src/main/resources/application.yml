@@ -1,9 +1,13 @@
 spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
   application:
     name: hungry-pang-project
 
   datasource:
-    url: jdbc:mysql://localhost:3306/test
+    url: jdbc:mysql://localhost:3306/tes
     username: root
     password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -15,6 +19,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+  cache:
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=10s
 
 portone:
   api:

@@ -17,6 +17,8 @@ import com.example.hungrypangproject.domain.review.repository.ReviewRepository;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ public class ReviewService {
     private final StoreRepository storeRepository;
 
     // 리뷰 작성
+    @CacheEvict(value = "storeReviews", key = "#result.storeId")
     public ReviewResponse createReview(Long orderId, Long loginMemberId, ReviewCreateRequest request) {
 
         // 주문 조회
@@ -74,6 +77,7 @@ public class ReviewService {
     }
 
     // 리뷰 목록 조회(식당별)
+    @Cacheable(value = "storeReviews", key = "#storeId")
     @Transactional(readOnly = true)
     public List<ReviewResponse> getStoreReviews(Long storeId) {
 
@@ -92,6 +96,7 @@ public class ReviewService {
     }
 
     // 리뷰 수정
+    @CacheEvict(value = "storeReviews", key = "#review.store.id")
     public ReviewResponse updateReview(Long reviewId, Long loginMemberId, ReviewUpdateRequest request) {
 
         // 삭제되지 않은 리뷰 조회
@@ -108,6 +113,7 @@ public class ReviewService {
     }
 
     // 리뷰 상태 변경
+    @CacheEvict(value = "storeReviews", allEntries = true)
     public ReviewResponse updateReviewStatus(Long reviewId, ReviewStatusUpdateRequest request, Member loginMember) {
 
         // 관리자 권한 확인
@@ -126,6 +132,7 @@ public class ReviewService {
     }
 
     // 리뷰 삭제
+    @CacheEvict(value = "storeReviews", allEntries = true)
     public void deleteReview(Long reviewId, Long loginMemberId) {
 
         // 삭제되지 않은 리뷰 조회

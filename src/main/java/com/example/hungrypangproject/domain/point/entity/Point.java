@@ -1,6 +1,8 @@
 package com.example.hungrypangproject.domain.point.entity;
 
 import com.example.hungrypangproject.common.entity.BaseEntity;
+import com.example.hungrypangproject.common.exception.ErrorCode;
+import com.example.hungrypangproject.common.exception.ServiceException;
 import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import jakarta.persistence.*;
@@ -20,6 +22,9 @@ public class Point extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
 
     // 현재 총 포인트
     @Column(nullable = false)

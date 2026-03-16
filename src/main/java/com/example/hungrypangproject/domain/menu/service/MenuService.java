@@ -14,6 +14,9 @@ import com.example.hungrypangproject.domain.store.entity.Store;
 import com.example.hungrypangproject.domain.store.exception.StoreException;
 import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,14 +25,14 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class MenuService {
 
     private final MenuRepository menuRepository;
     private final StoreRepository storeRepository;
 
     // 메뉴 등록
-    @Transactional
+    @CacheEvict(value = "menusByStore", key = "#storeId")
     public MenuResponse createMenu(Long storeId, MenuCreateRequest request) {
 
         // 식당 조회 (없으면 예외 발생)
@@ -57,6 +60,8 @@ public class MenuService {
     }
 
     // 메뉴 목록 조회(식당별)
+    @Cacheable(value = "menusByStore", key = "#storeId")
+    @Transactional(readOnly = true)
     public List<MenuResponse> getMenusByStore(Long storeId) {
 
         // 해당 식당이 존재하는지 검증
@@ -70,6 +75,8 @@ public class MenuService {
     }
 
     // 메뉴 상세 조회
+    @Cacheable(value = "menu", key = "#menuId")
+    @Transactional(readOnly = true)
     public MenuResponse getMenu(Long menuId) {
 
         // 메뉴 조회 (없으면 예외 발생)
@@ -80,7 +87,7 @@ public class MenuService {
     }
 
     // 메뉴 수정
-    @Transactional
+    @Caching(evict = {@CacheEvict(value = "menu", key = "#menuId"), @CacheEvict(value = "menusByStore", allEntries = true)})
     public MenuResponse updateMenu(Long menuId, MenuUpdateRequest request) {
 
         // 메뉴 조회
@@ -98,7 +105,7 @@ public class MenuService {
     }
 
     // 메뉴 상태 변경
-    @Transactional
+    @Caching(evict = {@CacheEvict(value = "menu", key = "#menuId"), @CacheEvict(value = "menusByStore", allEntries = true)})
     public MenuResponse updateMenuStatus(Long menuId, MenuStatusUpdateRequest request) {
 
         // 메뉴 조회
@@ -111,7 +118,7 @@ public class MenuService {
     }
 
     // 메뉴 삭제
-    @Transactional
+    @Caching(evict = {@CacheEvict(value = "menu", key = "#menuId"), @CacheEvict(value = "menusByStore", allEntries = true)})
     public void deleteMenu(Long menuId) {
 
         // 메뉴 조회

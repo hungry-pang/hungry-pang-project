@@ -95,9 +95,10 @@ public class MemberController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
+            @RequestHeader("Authorization") String accessToken,
             @AuthenticationPrincipal MemberUserDetails userDetails
     ){
-        memberService.logout(userDetails.getMember().getMemberId());
+        memberService.logout(accessToken, userDetails.getMember().getEmail());
         return ResponseEntity.ok().build();
     }
 }
