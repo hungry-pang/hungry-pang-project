@@ -5,11 +5,12 @@ import com.example.hungrypangproject.domain.review.entity.ReviewStatus;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
 @Builder
-public class ReviewResponse {
+public class ReviewResponse implements Serializable {
 
     private Long reviewId;
     private Long storeId;
