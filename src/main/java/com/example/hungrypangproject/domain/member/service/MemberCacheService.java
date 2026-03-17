@@ -16,7 +16,8 @@ public class MemberCacheService {
     // RefreshToken 캐시 저장
     public void saveRefreshToken(String email, String refreshToken, Long durationMillis) {
         String key = CACHE_REFRESH_TOKEN_PREFIX + email;
-        redisTemplate.opsForValue().set(key, refreshToken, Duration.ofSeconds(durationMillis));
+        redisTemplate.opsForValue().set(key, refreshToken, Duration.ofMillis(durationMillis));
+
     }
         // RefreshToken 가져오기
     public String getRefreshToken(String email) {
