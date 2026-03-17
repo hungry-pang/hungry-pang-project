@@ -1,5 +1,6 @@
 package com.example.hungrypangproject.common.security;
 
+import com.example.hungrypangproject.common.exception.ErrorCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,10 +55,17 @@ public class JwtFilter extends OncePerRequestFilter {
         if (!jwtUtil.validateToken(jwt)) {
 
             // 만료되었다면 401 에러 후 Refresh Token 사용 유도
-            log.warn("JWT 토큰이 유효하지 않습니다. URL: {}", requestURL);
+            log.warn("AccessToken 만료. URL: {}", requestURL);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("{\"message\": \"토큰이 유효하지 않습니다.\"}");
+
+            String jsonResponse = String.format(
+                    "{\"code\": \"%s\", \"message\": \"%s\"}",
+                    ErrorCode.ACCESS_TOKEN_EXPIRED.name(),
+                    ErrorCode.ACCESS_TOKEN_EXPIRED.getMessage()
+            );
+            response.getWriter().write(jsonResponse);
             return;
         }
 
