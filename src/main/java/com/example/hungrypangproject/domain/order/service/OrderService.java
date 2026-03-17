@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -66,6 +67,7 @@ public class OrderService {
                 ));
 
         List<Long> menuIds = new ArrayList<>(menuIdToStock.keySet());
+        Collections.sort(menuIds);
         // key값만 뽑아내서 id목록으로 한번에 조회, 쿼리가 한번만 나감4
         List<Menu> menus = menuRepository.findAllByIdInAndStoreId(menuIds, request.getStoreId());
 
@@ -76,13 +78,12 @@ public class OrderService {
         }
 
 
-        if (menuRepository.existsByIdInAndStatus(menuIds, MenuStatus.SOLDOUT)) {
-            throw new MenuException(ErrorCode.MENU_SOLD_OUT);
-        }
-
 
             BigDecimal totalPrice = BigDecimal.ZERO;
             for (Menu menu : menus) {
+                if (menu.getStatus() != MenuStatus.SALE) {
+                    throw new MenuException(ErrorCode.MENU_SOLD_OUT);
+                }
                 Long stock = menuIdToStock.get(menu.getId());// 수량
                 totalPrice = totalPrice.add(menu.getPrice().multiply(new BigDecimal(stock)));//가격 계산
             }
