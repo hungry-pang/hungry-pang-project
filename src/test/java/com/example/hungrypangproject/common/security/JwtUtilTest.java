@@ -5,7 +5,6 @@ import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Base64;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,6 +20,7 @@ class JwtUtilTest {
     @BeforeEach
     void setUp() {
         jwtUtil = new JwtUtil();
+
         // @Value로 들어가는 값을 수동으로 설정 (Reflection 사용)
         String encodedKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
         ReflectionTestUtils.setField(jwtUtil, "secretKeyString", encodedKey);
@@ -38,7 +38,7 @@ class JwtUtilTest {
 
         // when
         String token = jwtUtil.createAccessToken(email, role);
-        String pureToken = jwtUtil.substringToken(token); // Bearer 제거
+        String pureToken = jwtUtil.substringToken(token);
         String extractedEmail = jwtUtil.extractEmail(pureToken);
 
         // then

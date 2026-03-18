@@ -3,7 +3,6 @@ package com.example.hungrypangproject.common.exception;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import retrofit2.http.HTTP;
 
 @Getter
 @RequiredArgsConstructor
@@ -42,6 +41,7 @@ public enum ErrorCode {
     POINT_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "포인트가 부족합니다."),
     POINT_EXCEED_LIMIT(HttpStatus.BAD_REQUEST, "포인트는 결제금액의 10% 이하만 사용 가능합니다."),
     POINT_NOT_HOLDING(HttpStatus.BAD_REQUEST, "적립 대기중인 포인트가 없습니다."),
+    ALREADY_POINT_USED(HttpStatus.BAD_REQUEST,"이미 포인트 결제가 처리된 주문입니다."),
 
     //MEMBER
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을수 없습니다."),

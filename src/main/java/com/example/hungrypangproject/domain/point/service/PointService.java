@@ -29,16 +29,8 @@ public class PointService {
      * 주문 서비스와 동시에 롤백이 되지 않게 Transactional 삭제
      */
 
-      private final PointRepository pointRepository;
+    private final PointRepository pointRepository;
     private final MemberRepository memberRepository;
-//
-//    @Transactional
-//    public void withdraw(Long memberId, int amount) {
-//        Point point = pointRepository.findById(memberId).orElseThrow();
-//
-//        point.decrease(amount);
-//        log.info("[사용 완료] {} 에서 실행 되었습니다. 잔여 포인트 : " + Thread.currentThread().getName(), point.getCurrentlyPoint());
-//    }
 
     public BigDecimal calculateEarnedPoints (BigDecimal totalPrice, BigDecimal usedPoints) {
         BigDecimal payAmount = totalPrice.subtract(usedPoints);
@@ -48,9 +40,16 @@ public class PointService {
 
     @Transactional
     public void usedPoint(Member member, Order order, BigDecimal useAmount) {
+
         // 락 걸고 회원 정보 다시 가져오기
-        Member lockdMember = memberRepository.findByaTotalPointForLock(member.getTotalPoint())
+        Member lockdMember = memberRepository.findByaMemberIdForLock(member.getMemberId())
                 .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+
+        // 주문으로 포인트 차감 로그 존재 확인
+        boolean alreadyPointUsed = pointRepository.existsByOrderAndStatus(order, PointEnum.HOLDING);
+        if (alreadyPointUsed) {
+            throw new ServiceException(ErrorCode.ALREADY_POINT_USED);
+        }
 
         if(useAmount.compareTo(new BigDecimal("100")) < 0) {
             throw new ServiceException(ErrorCode.POINT_NOT_ENOUGH);
@@ -81,6 +80,7 @@ public class PointService {
    }
 
     public void reserveEarnPoint(Member member, Order order, BigDecimal earnAmount) {
+
         // 배달 완료 전 홀딩 상태 포인트 확인
         Point earnLog = Point.register(
                 member.getTotalPoint(),
@@ -94,7 +94,8 @@ public class PointService {
    }
 
     public void completePoint(Order order) {
-       // 적립 홀딩 상태 확인
+
+        // 적립 홀딩 상태 확인
        Point point = pointRepository.findFirstByOrderAndStatusOrderByCreatedAtDesc(order, PointEnum.HOLDING)
                .orElseThrow(() -> new ServiceException(ErrorCode.POINT_NOT_HOLDING));
 

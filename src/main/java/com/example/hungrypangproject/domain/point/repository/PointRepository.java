@@ -9,4 +9,5 @@ import java.util.Optional;
 
 public interface PointRepository extends JpaRepository <Point, Long> {
     Optional<Point> findFirstByOrderAndStatusOrderByCreatedAtDesc(Order order, PointEnum status);
+    Boolean existsByOrderAndStatus (Order order, PointEnum status);
 }
