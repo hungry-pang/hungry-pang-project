@@ -102,6 +102,13 @@ public class Review extends BaseEntity {
         }
     }
 
+    public void applyLikeDelta(Long delta) {
+        this.likeCount += delta;
+        if (this.likeCount < 0) {
+            this.likeCount = 0L;
+        }
+    }
+
     private static void validateRating(Integer rating) {
         if (rating == null || rating < 1 || rating > 5) {
             throw new IllegalArgumentException("별점은 1점 이상 5점 이하만 가능합니다.");
