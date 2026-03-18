@@ -3,6 +3,7 @@ package com.example.hungrypangproject.domain.point.service;
 import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.common.exception.ServiceException;
 import com.example.hungrypangproject.domain.member.entity.Member;
+import com.example.hungrypangproject.domain.member.repository.MemberRepository;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import com.example.hungrypangproject.domain.point.entity.Point;
 import com.example.hungrypangproject.domain.point.entity.PointEnum;
@@ -29,6 +30,7 @@ public class PointService {
      */
 
       private final PointRepository pointRepository;
+    private final MemberRepository memberRepository;
 //
 //    @Transactional
 //    public void withdraw(Long memberId, int amount) {
@@ -44,7 +46,12 @@ public class PointService {
                 .setScale(0,RoundingMode.FLOOR);
     }
 
+    @Transactional
     public void usedPoint(Member member, Order order, BigDecimal useAmount) {
+        // 락 걸고 회원 정보 다시 가져오기
+        Member lockdMember = memberRepository.findByaMemberIdForUpdateLock(member.getMemberId())
+                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+
         if(useAmount.compareTo(new BigDecimal("100")) < 0) {
             throw new ServiceException(ErrorCode.POINT_NOT_ENOUGH);
         }
@@ -60,10 +67,10 @@ public class PointService {
         }
 
         // 사용가능한 포인트에서 즉시 차감
-        member.minusPoint(useAmount);
+        lockdMember.minusPoint(useAmount);
 
         Point useLog = Point.register(
-                member.getTotalPoint(),
+                lockdMember.getTotalPoint(),
                 BigDecimal.ZERO,
                 useAmount,
                 PointEnum.HOLDING,

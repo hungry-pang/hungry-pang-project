@@ -109,6 +109,11 @@ public class MemberService {
             throw new ServiceException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
 
+        if (!savedToken.equals(refreshToken)) {
+            log.error("RefreshToken이 만료되었습니다. 회원: {}", email);
+            throw new ServiceException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+        }
+
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
 

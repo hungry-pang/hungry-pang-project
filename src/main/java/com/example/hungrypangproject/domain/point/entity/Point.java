@@ -6,9 +6,7 @@ import com.example.hungrypangproject.common.exception.ServiceException;
 import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.aspectj.weaver.ast.Or;
 
 import java.math.BigDecimal;
@@ -17,7 +15,9 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Table(name = "points")
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class Point extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -39,7 +39,7 @@ public class Member extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String password;
 
-    @Column(nullable = false)
+    @Column(name = "points", nullable = false)
     private BigDecimal totalPoint;
 
     @Column(nullable = false)
