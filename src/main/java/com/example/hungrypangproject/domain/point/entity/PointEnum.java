@@ -1,7 +1,6 @@
 package com.example.hungrypangproject.domain.point.entity;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @Getter
 public enum PointEnum {
