@@ -430,4 +430,72 @@ public class ReviewServiceTest {
         verify(reviewRepository, times(1)).findByIdAndStatusNot(1L, ReviewStatus.DELETED);
         verify(review, never()).delete();
     }
+
+    @Test
+    @DisplayName("리뷰 좋아요 등록 성공")
+    void likeReview_Success() {
+        // given
+        Review review = mock(Review.class);
+
+        when(reviewRepository.findById(1L))
+                .thenReturn(Optional.of(review));
+
+        // when
+        reviewService.likeReview(1L);
+
+        // then
+        verify(reviewRepository, times(1)).findById(1L);
+        verify(review, times(1)).increaseLikeCount(1L);
+    }
+
+    @Test
+    @DisplayName("리뷰 좋아요 등록 실패 - 리뷰가 존재하지 않음")
+    void likeReview_Fail_ReviewNotFound() {
+        // given
+        when(reviewRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+        // when
+        ReviewException exception = assertThrows(ReviewException.class,
+                () -> reviewService.likeReview(1L));
+
+        // then
+        assertEquals(ErrorCode.REVIEW_NOT_FOUND.getMessage(), exception.getMessage());
+        verify(reviewRepository, times(1)).findById(1L);
+        verify(reviewRepository, never()).findByIdAndStatusNot(anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("리뷰 좋아요 삭제 성공")
+    void unlikeReview_Success() {
+        // given
+        Review review = mock(Review.class);
+
+        when(reviewRepository.findById(1L))
+                .thenReturn(Optional.of(review));
+
+        // when
+        reviewService.unlikeReview(1L);
+
+        // then
+        verify(reviewRepository, times(1)).findById(1L);
+        verify(review, times(1)).decreaseLikeCount(1L);
+    }
+
+    @Test
+    @DisplayName("리뷰 좋아요 삭제 실패 - 리뷰가 존재하지 않음")
+    void unlikeReview_Fail_ReviewNotFound() {
+        // given
+        when(reviewRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+        // when
+        ReviewException exception = assertThrows(ReviewException.class,
+                () -> reviewService.unlikeReview(1L));
+
+        // then
+        assertEquals(ErrorCode.REVIEW_NOT_FOUND.getMessage(), exception.getMessage());
+        verify(reviewRepository, times(1)).findById(1L);
+        verify(reviewRepository, never()).findByIdAndStatusNot(anyLong(), any());
+    }
 }

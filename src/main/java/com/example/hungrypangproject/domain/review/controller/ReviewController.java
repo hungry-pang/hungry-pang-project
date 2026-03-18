@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-public class ReviewContoller {
+public class ReviewController {
 
     private final ReviewService reviewService;
 
@@ -69,5 +69,17 @@ public class ReviewContoller {
             @RequestHeader("memberId") Long memberId
     ) {
         reviewService.deleteReview(reviewId, memberId);
+    }
+
+    // 리뷰 좋아요
+    @PostMapping("/reviews/{reviewId}/like")
+    public void likeReview(@PathVariable Long reviewId) {
+        reviewService.likeReview(reviewId);
+    }
+
+    // 리뷰 좋아요 취소
+    @DeleteMapping("/reviews/{reviewId}/like")
+    public void unlikeReview(@PathVariable Long reviewId) {
+        reviewService.unlikeReview(reviewId);
     }
 }
