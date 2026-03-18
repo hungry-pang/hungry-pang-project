@@ -174,7 +174,7 @@ class MemberServiceTest {
     }
 
     @Test
-    @DisplayName("Redis의 리프레시 토큰과 일치하지 않으면 예외 발생")
+    @DisplayName("Redis에 저장된 리프레시 토큰과 일치하지 않으면 예외 발생")
     void refresh_Fail_TokenMismatch() {
         // given
         String requestToken = "Bearer wrong-token";
@@ -196,6 +196,6 @@ class MemberServiceTest {
         // when & then
         assertThatThrownBy(() -> memberService.refresh(requestToken))
                 .isInstanceOf(ServiceException.class)
-                .hasMessageContaining(ErrorCode.INVALID_TOKEN.getMessage());
+                .hasMessageContaining(ErrorCode.REFRESH_TOKEN_EXPIRED.getMessage());
     }
 }
