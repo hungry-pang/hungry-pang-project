@@ -85,7 +85,12 @@ public enum ErrorCode {
     ORDER_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "이미 완료된 주문은 환불할 수 없습니다."),
 
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
+
+    //Coupon
+    COUPON_NOT_FOUND(HttpStatus.NOT_FOUND, "쿠폰을 찾을 수 없습니다."),
+    COUPON_FORBIDDEN(HttpStatus.FORBIDDEN, "쿠폰에 대한 권한이 없습니다."),
+    COUPON_QUANTITY_EXCEEDED(HttpStatus.BAD_REQUEST, "쿠폰 발급 수량이 초과되었습니다.");
 
     private final HttpStatus status;
     private final String message;

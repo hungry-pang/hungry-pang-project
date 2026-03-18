@@ -46,7 +46,7 @@ public class RefundService {
     @Transactional
     public RefundAllResponse refundAll(Long memberId, String dbPaymentId, @Valid RefundAllRequest refundAllRequest) {
         // 1) 결제 조회 및 환불 가능 여부 검증
-        Payment payment = paymentRepository.findByDbPaymentId(dbPaymentId)
+        Payment payment = paymentRepository.findByDbPaymentIdWithLock(dbPaymentId)
                 .orElseThrow(() -> new RefundException(ErrorCode.PAYMENT_NOT_FOUND));
 
         // 본인 결제인지 검증
