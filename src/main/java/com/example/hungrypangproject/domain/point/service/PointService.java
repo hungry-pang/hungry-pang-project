@@ -49,7 +49,7 @@ public class PointService {
     @Transactional
     public void usedPoint(Member member, Order order, BigDecimal useAmount) {
         // 락 걸고 회원 정보 다시 가져오기
-        Member lockdMember = memberRepository.findByaMemberIdForUpdateLock(member.getMemberId())
+        Member lockdMember = memberRepository.findByaTotalPointForLock(member.getTotalPoint())
                 .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
 
         if(useAmount.compareTo(new BigDecimal("100")) < 0) {

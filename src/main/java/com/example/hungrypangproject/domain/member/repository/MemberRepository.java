@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,7 +22,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     // totalPoint 차감 및 적립에 대한 비관적 락
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT m FROM Member m WHERE m.memberId = :memberId")
-    Optional<Member> findByaMemberIdForUpdateLock(@Param("memberId") Long memberId);
+    @Query("SELECT m FROM Member m WHERE m.totalPoint = :totalPoint")
+    Optional<Member> findByaTotalPointForLock(@Param("totalPoint") BigDecimal totalPoint);
 
 }
