@@ -51,6 +51,7 @@ public enum ErrorCode {
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST,"비밀번호가 일치하지 않습니다."),
     ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED,"AccessToken이 만료되었습니다. 재발급이 필요합니다,"),
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED,"RefreshToken 이 만료되었습니다. 다시 로그인 해주세요."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
 
     // Membership
     MEMBERSHIP_NOT_GRADE(HttpStatus.BAD_REQUEST, "기본 등급 정책이 존재하지 않습니다."),

@@ -44,6 +44,9 @@ public class Review extends BaseEntity {
     @Column(nullable = false)
     private ReviewStatus status;
 
+    @Column(nullable = false)
+    private Long likeCount;
+
     public static Review create(
             Store store,
             Order order,
@@ -52,6 +55,9 @@ public class Review extends BaseEntity {
             Integer rating,
             String content
     ) {
+        validateRating(rating);
+        validateContent(content);
+
         Review review = new Review();
         review.store = store;
         review.order = order;
@@ -60,11 +66,15 @@ public class Review extends BaseEntity {
         review.rating = rating;
         review.content = content;
         review.status = ReviewStatus.EXPOSED;
+        review.likeCount = 0L;
         return review;
     }
 
     // 리뷰 수정
     public void update(String content, Integer rating) {
+        validateRating(rating);
+        validateContent(content);
+
         this.content = content;
         this.rating = rating;
     }
@@ -77,6 +87,19 @@ public class Review extends BaseEntity {
     // 리뷰 삭제
     public void delete() {
         this.status = ReviewStatus.DELETED;
+    }
+
+    // 좋아요 수 증가
+    public void increaseLikeCount(Long count) {
+        this.likeCount += count;
+    }
+
+    // 좋아요 수 감소
+    public void decreaseLikeCount(Long count) {
+        this.likeCount -= count;
+        if (this.likeCount < 0) {
+            this.likeCount = 0L;
+        }
     }
 
     private static void validateRating(Integer rating) {

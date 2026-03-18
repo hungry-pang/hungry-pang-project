@@ -20,6 +20,7 @@ public class ReviewResponse implements Serializable {
     private Integer rating;
     private String content;
     private ReviewStatus status;
+    private Long likeCount;
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
 
@@ -33,6 +34,7 @@ public class ReviewResponse implements Serializable {
                 .rating(review.getRating())
                 .content(review.getContent())
                 .status(review.getStatus())
+                .likeCount(review.getLikeCount())
                 .createdAt(review.getCreatedAt())
                 .modifiedAt(review.getModifiedAt())
                 .build();

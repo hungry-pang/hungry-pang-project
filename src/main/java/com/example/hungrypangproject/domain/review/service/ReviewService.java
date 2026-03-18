@@ -34,7 +34,7 @@ public class ReviewService {
     private final StoreRepository storeRepository;
 
     // 리뷰 작성
-    @CacheEvict(value = "storeReviews", key = "#result.storeId")
+    @CacheEvict(value = "storeReviews", allEntries = true)
     public ReviewResponse createReview(Long orderId, Long loginMemberId, ReviewCreateRequest request) {
 
         // 주문 조회
@@ -96,7 +96,7 @@ public class ReviewService {
     }
 
     // 리뷰 수정
-    @CacheEvict(value = "storeReviews", key = "#review.store.id")
+    @CacheEvict(value = "storeReviews", allEntries = true)
     public ReviewResponse updateReview(Long reviewId, Long loginMemberId, ReviewUpdateRequest request) {
 
         // 삭제되지 않은 리뷰 조회
@@ -144,6 +144,26 @@ public class ReviewService {
 
         // soft delete 처리
         review.delete();
+    }
+
+    // 리뷰 좋아요
+    @CacheEvict(value = "storeReviews", allEntries = true)
+    public void likeReview(Long reviewId) {
+        Review review = getReviewEntity(reviewId);
+        review.increaseLikeCount(1L);
+    }
+
+    // 리뷰 좋아요 취소
+    @CacheEvict(value = "storeReviews", allEntries = true)
+    public void unlikeReview(Long reviewId) {
+        Review review = getReviewEntity(reviewId);
+        review.decreaseLikeCount(1L);
+    }
+
+    // 리뷰 ID로 조회 없으면 REVIEW_NOT_FOUND 예외 발생
+    private Review getReviewEntity(Long reviewId) {
+        return reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ReviewException(ErrorCode.REVIEW_NOT_FOUND));
     }
 
     // 리뷰 작성자 검증
