@@ -6,6 +6,9 @@ import com.example.hungrypangproject.domain.member.repository.MemberRepository;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import com.example.hungrypangproject.domain.order.entity.OrderStatus;
 import com.example.hungrypangproject.domain.order.repository.OrderRepository;
+import com.example.hungrypangproject.domain.store.entity.Store;
+import com.example.hungrypangproject.domain.store.entity.StoreStatus;
+import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -30,6 +34,9 @@ public class PointServiceConcurrencyTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private StoreRepository storeRepository;
+
     @Test
     @DisplayName("포인트 사용 시 동시에 10개의 요청이 와도 1번만 차감되어야 한다")
     void concurrencyTest() throws InterruptedException {
@@ -43,10 +50,22 @@ public class PointServiceConcurrencyTest {
                 .totalPriceAmount(new BigDecimal("100000"))
                 .totalPoint(new BigDecimal("10000"))
                 .build());
+
+        Store store = storeRepository.save(Store.builder()
+                .storeName("배고팡")
+                .status(StoreStatus.OPEN)
+                .seller(member)
+                .build());
+
         Order order = orderRepository.save(Order.builder()
                 .totalPrice(new BigDecimal("50000"))
-                .id(member.getMemberId())
+                .member(member)
+                .orderAt(LocalDateTime.now())
+                .orderNum(UUID.randomUUID())
+                .orderStatus(OrderStatus.WAITING)
+                .store(store)
                 .build());
+
         BigDecimal useAmount = new BigDecimal("1000");
 
         // 동시 요청 수
@@ -70,7 +89,7 @@ public class PointServiceConcurrencyTest {
                     latch.countDown();
                 }
             });
-
+        }
             // 모든 스레드가 종료될 때까지 대기
             latch.await();
 
@@ -81,4 +100,3 @@ public class PointServiceConcurrencyTest {
                     .isEqualByComparingTo(new BigDecimal("9000"));
         }
     }
-}

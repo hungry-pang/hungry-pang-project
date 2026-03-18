@@ -1,13 +1,10 @@
 package com.example.hungrypangproject.domain.point.entity;
 
 import com.example.hungrypangproject.common.entity.BaseEntity;
-import com.example.hungrypangproject.common.exception.ErrorCode;
-import com.example.hungrypangproject.common.exception.ServiceException;
 import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import jakarta.persistence.*;
 import lombok.*;
-import org.aspectj.weaver.ast.Or;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,15 +23,12 @@ public class Point extends BaseEntity {
     @Version
     private Long version;
 
-    // 현재 총 포인트
     @Column(nullable = false)
     private BigDecimal currentlyPoint;
 
-    // 적립 포인트
     @Column(nullable = false)
     private BigDecimal earnPoint;
 
-    // 사용 포인트
     @Column(nullable = false)
     private BigDecimal usedPoint;
 
