@@ -19,6 +19,7 @@ import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,9 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final OrderRepository orderRepository;
     private final StoreRepository storeRepository;
+    private final StringRedisTemplate stringRedisTemplate;
+
+    private static final String REVIEW_LIKE_KEY = "review:like:delta";
 
     // 리뷰 작성
     @CacheEvict(value = "storeReviews", allEntries = true)
@@ -146,18 +150,20 @@ public class ReviewService {
         review.delete();
     }
 
-    // 리뷰 좋아요
+    // 리뷰 좋아요 등록
     @CacheEvict(value = "storeReviews", allEntries = true)
     public void likeReview(Long reviewId) {
-        Review review = getReviewEntity(reviewId);
-        review.increaseLikeCount(1L);
+        validateReviewExists(reviewId);
+        stringRedisTemplate.opsForHash()
+                .increment(REVIEW_LIKE_KEY, String.valueOf(reviewId), 1);
     }
 
-    // 리뷰 좋아요 취소
+    // 리뷰 좋아요 삭제
     @CacheEvict(value = "storeReviews", allEntries = true)
     public void unlikeReview(Long reviewId) {
-        Review review = getReviewEntity(reviewId);
-        review.decreaseLikeCount(1L);
+        validateReviewExists(reviewId);
+        stringRedisTemplate.opsForHash()
+                .increment(REVIEW_LIKE_KEY, String.valueOf(reviewId), -1);
     }
 
     // 리뷰 ID로 조회 없으면 REVIEW_NOT_FOUND 예외 발생
@@ -172,5 +178,11 @@ public class ReviewService {
         if (!review.getMember().getMemberId().equals(loginMemberId)) {
             throw new ReviewException(ErrorCode.REVIEW_FORBIDDEN);
         }
+    }
+
+    // 리뷰 좋아요 검증
+    private void validateReviewExists(Long reviewId) {
+        reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ReviewException(ErrorCode.REVIEW_NOT_FOUND));
     }
 }
