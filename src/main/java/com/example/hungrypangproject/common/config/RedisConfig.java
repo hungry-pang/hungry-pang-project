@@ -1,7 +1,5 @@
 package com.example.hungrypangproject.common.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,12 +49,12 @@ public class RedisConfig {
                 )
                 .disableCachingNullValues();
 
-        // 캐시별 TTL 설정
+        /* 캐시별 TTL 설정
+         * 추가 양식 : "캐시명", defaultConfig.entryTtl(Duration.ofMinutes(5)) 넣으면 됩니다.
+         */
         Map<String, RedisCacheConfiguration> cacheConfigs = Map.of(
                 "userOrderCount", defaultConfig.entryTtl(Duration.ofMinutes(30)),
                 "memberProfile", defaultConfig.entryTtl(Duration.ofMinutes(60))
-                // 추가 양식
-                // "캐시명",         defaultConfig.entryTtl(Duration.ofMinutes(5))
         );
 
         return RedisCacheManager.builder(connectionFactory)
