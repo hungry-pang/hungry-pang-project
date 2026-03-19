@@ -5,11 +5,12 @@ import com.example.hungrypangproject.domain.menu.entity.MenuStatus;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Getter
 @Builder
-public class MenuResponse {
+public class MenuResponse implements Serializable {
 
     private Long id;
     private Long storeId;

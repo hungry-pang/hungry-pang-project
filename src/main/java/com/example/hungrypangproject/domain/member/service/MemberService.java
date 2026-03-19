@@ -98,15 +98,20 @@ public class MemberService {
 
         // jwtUtil 인스턴스를 사용한 유효성 검사
         if (!jwtUtil.validateToken(token)) {
-            throw new ServiceException(ErrorCode.INVALID_TOKEN);
+            throw new ServiceException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
 
         // Redis 에서 유저 찾기 및 리프레시 토큰 대조
         String email = jwtUtil.extractEmail(token);
         String savedToken = memberCacheService.getRefreshToken(email);
 
-        if (savedToken == null || !savedToken.equals(refreshToken)) {
-            throw new ServiceException(ErrorCode.INVALID_TOKEN);
+        if (savedToken == null) {
+            throw new ServiceException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+        }
+
+        if (!savedToken.equals(refreshToken)) {
+            log.error("RefreshToken이 만료되었습니다. 회원: {}", email);
+            throw new ServiceException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
 
         Member member = memberRepository.findByEmail(email)
@@ -116,8 +121,8 @@ public class MemberService {
         log.info("재발급 시도 유저: {}", email);
         log.info("Redis에 저장된 RT와 일치 여부: {}", refreshToken.equals(savedToken));
 
-        if (savedToken == null || !savedToken.equals(refreshToken)) {
-            throw new ServiceException(ErrorCode.INVALID_TOKEN);
+        if (!savedToken.equals(refreshToken)) {
+            throw new ServiceException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
 
         // 새로운 Access 및 Refresh 토큰 생성

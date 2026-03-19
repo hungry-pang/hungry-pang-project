@@ -57,12 +57,11 @@ class MemberServiceTest {
     @InjectMocks
     private MemberService memberService;
 
-    // 회원가입 테스트 (성공 케이스)
     @Test
     @DisplayName("회원가입 성공")
     void signup_Success() {
-        // given
 
+        // given
         SaveMemberRequest request = new SaveMemberRequest(
                 "테스트",
                 "test@test.com",
@@ -83,7 +82,6 @@ class MemberServiceTest {
         verify(memberRepository, times(1)).save(any(Member.class));
     }
 
-    // 회원가입 테스트 (이미 존재하는 이메일 실패 케이스)
     @Test
     @DisplayName("중복 이메일 회원가입 시 예외 발생")
     void signup_Fail_DuplicateEmail() {
@@ -104,7 +102,6 @@ class MemberServiceTest {
                 .hasMessageContaining(ErrorCode.EMAIL_ALREADY_EXISTS.getMessage());
     }
 
-    // 로그인 테스트 (AuthenticationManager 가짜 인증 처리)
     @Test
     @DisplayName("로그인 성공")
     void login_Success() {
@@ -131,7 +128,6 @@ class MemberServiceTest {
         assertThat(result.getRefreshToken()).isEqualTo("refresh_token");
     }
 
-    //  리프레시 토큰 테스트
     @Test
     @DisplayName("Redis 리프레시 토큰 재발급 성공")
     void refresh_Success() {
@@ -174,7 +170,7 @@ class MemberServiceTest {
     }
 
     @Test
-    @DisplayName("Redis의 리프레시 토큰과 일치하지 않으면 예외 발생")
+    @DisplayName("Redis에 저장된 리프레시 토큰과 일치하지 않으면 예외 발생")
     void refresh_Fail_TokenMismatch() {
         // given
         String requestToken = "Bearer wrong-token";
@@ -196,6 +192,6 @@ class MemberServiceTest {
         // when & then
         assertThatThrownBy(() -> memberService.refresh(requestToken))
                 .isInstanceOf(ServiceException.class)
-                .hasMessageContaining(ErrorCode.INVALID_TOKEN.getMessage());
+                .hasMessageContaining(ErrorCode.REFRESH_TOKEN_EXPIRED.getMessage());
     }
 }

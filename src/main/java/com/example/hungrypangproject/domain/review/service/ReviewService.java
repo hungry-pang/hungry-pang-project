@@ -19,6 +19,7 @@ import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,9 +33,12 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final OrderRepository orderRepository;
     private final StoreRepository storeRepository;
+    private final StringRedisTemplate stringRedisTemplate;
+
+    private static final String REVIEW_LIKE_KEY = "review:like:delta";
 
     // 리뷰 작성
-    @CacheEvict(value = "storeReviews", key = "#result.storeId")
+    @CacheEvict(value = "storeReviews", allEntries = true)
     public ReviewResponse createReview(Long orderId, Long loginMemberId, ReviewCreateRequest request) {
 
         // 주문 조회
@@ -96,7 +100,7 @@ public class ReviewService {
     }
 
     // 리뷰 수정
-    @CacheEvict(value = "storeReviews", key = "#review.store.id")
+    @CacheEvict(value = "storeReviews", allEntries = true)
     public ReviewResponse updateReview(Long reviewId, Long loginMemberId, ReviewUpdateRequest request) {
 
         // 삭제되지 않은 리뷰 조회
@@ -146,11 +150,39 @@ public class ReviewService {
         review.delete();
     }
 
+    // 리뷰 좋아요 등록
+    @CacheEvict(value = "storeReviews", allEntries = true)
+    public void likeReview(Long reviewId) {
+        validateReviewExists(reviewId);
+        stringRedisTemplate.opsForHash()
+                .increment(REVIEW_LIKE_KEY, String.valueOf(reviewId), 1);
+    }
+
+    // 리뷰 좋아요 삭제
+    @CacheEvict(value = "storeReviews", allEntries = true)
+    public void unlikeReview(Long reviewId) {
+        validateReviewExists(reviewId);
+        stringRedisTemplate.opsForHash()
+                .increment(REVIEW_LIKE_KEY, String.valueOf(reviewId), -1);
+    }
+
+    // 리뷰 ID로 조회 없으면 REVIEW_NOT_FOUND 예외 발생
+    private Review getReviewEntity(Long reviewId) {
+        return reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ReviewException(ErrorCode.REVIEW_NOT_FOUND));
+    }
+
     // 리뷰 작성자 검증
     private void validateReviewOwner(Review review, Long loginMemberId) {
 
         if (!review.getMember().getMemberId().equals(loginMemberId)) {
             throw new ReviewException(ErrorCode.REVIEW_FORBIDDEN);
         }
+    }
+
+    // 리뷰 좋아요 검증
+    private void validateReviewExists(Long reviewId) {
+        reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ReviewException(ErrorCode.REVIEW_NOT_FOUND));
     }
 }

@@ -2,7 +2,6 @@ package com.example.hungrypangproject.domain.member.controller;
 
 import com.example.hungrypangproject.domain.member.dto.request.*;
 import com.example.hungrypangproject.domain.member.dto.respons.*;
-import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import com.example.hungrypangproject.domain.member.service.MemberService;
 import jakarta.validation.Valid;

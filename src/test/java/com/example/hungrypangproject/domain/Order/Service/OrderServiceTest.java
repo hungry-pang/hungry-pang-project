@@ -2,6 +2,7 @@ package com.example.hungrypangproject.domain.order.service;
 
 import com.example.hungrypangproject.domain.member.entity.Member;
 import com.example.hungrypangproject.domain.member.repository.MemberRepository;
+import com.example.hungrypangproject.domain.membership.service.MembershipService;
 import com.example.hungrypangproject.domain.menu.entity.Menu;
 import com.example.hungrypangproject.domain.menu.entity.MenuStatus;
 import com.example.hungrypangproject.domain.menu.exception.MenuException;
@@ -17,6 +18,8 @@ import com.example.hungrypangproject.domain.order.entity.OrderStatus;
 import com.example.hungrypangproject.domain.order.exception.OrderException;
 import com.example.hungrypangproject.domain.order.repository.OrderItemRepository;
 import com.example.hungrypangproject.domain.order.repository.OrderRepository;
+import com.example.hungrypangproject.domain.point.repository.PointRepository;
+import com.example.hungrypangproject.domain.point.service.PointService;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import com.example.hungrypangproject.domain.store.entity.StoreStatus;
 import com.example.hungrypangproject.domain.store.exception.StoreException;
@@ -61,6 +64,10 @@ class OrderServiceTest {
     private MenuRepository menuRepository;
     @Mock
     private OrderItemRepository orderItemRepository;
+
+    @Mock private MembershipService membershipService;
+    @Mock private PointService pointService;
+    @Mock private PointRepository pointRepository;
 
     private Member member;
     private Store store;
@@ -113,14 +120,17 @@ class OrderServiceTest {
             given(request.getUsedPoint()).willReturn(BigDecimal.ZERO);
 
             given(storeRepository.findById(1L)).willReturn(Optional.of(store));
-            given(menuRepository.findAllById(any())).willReturn(List.of(menu1, menu2));
-            given(memberRepository.getReferenceById(1L)).willReturn(member);
+            given(menuRepository.findAllByIdInAndStoreId(anyList(), eq(1L))) .willReturn(List.of(menu1, menu2));
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+
 
             Order savedOrder = mock(Order.class);
             given(savedOrder.getId()).willReturn(1L);
             given(savedOrder.getOrderNum()).willReturn(UUID.randomUUID());
             given(orderRepository.save(any())).willReturn(savedOrder);
             given(orderItemRepository.saveAll(anyList())).willReturn(List.of());
+            given(savedOrder.getFinalPaymentAmount()).willReturn(new BigDecimal("21000"));
+            given(pointService.calculateEarnedPoints(any(), any())).willReturn(BigDecimal.ZERO);
 
             // when
             CreateOrderResponse response = orderService.save(1L, request);
@@ -163,7 +173,7 @@ class OrderServiceTest {
             given(request.getItems()).willReturn(List.of(item1, item2));
 
             given(storeRepository.findById(1L)).willReturn(Optional.of(store));
-            given(menuRepository.findAllById(any())).willReturn(List.of(menu1)); // 1개만 반환
+            given(menuRepository.findAllByIdInAndStoreId(anyList(), eq(1L))) .willReturn(List.of(menu1));// 1개만 반환
 
             // when & then
             assertThatThrownBy(() -> orderService.save(1L, request))
@@ -185,7 +195,7 @@ class OrderServiceTest {
             given(request.getItems()).willReturn(List.of(item1));
 
             given(storeRepository.findById(1L)).willReturn(Optional.of(store));
-            given(menuRepository.findAllById(any())).willReturn(List.of(menu1));
+            given(menuRepository.findAllByIdInAndStoreId(anyList(), eq(1L))) .willReturn(List.of(menu1));
 
             // when & then
             assertThatThrownBy(() -> orderService.save(1L, request))
@@ -208,7 +218,7 @@ class OrderServiceTest {
             given(request.getUsedPoint()).willReturn(BigDecimal.ZERO);
 
             given(storeRepository.findById(1L)).willReturn(Optional.of(store));
-            given(menuRepository.findAllById(any())).willReturn(List.of(menu1));
+            given(menuRepository.findAllByIdInAndStoreId(anyList(), eq(1L))) .willReturn(List.of(menu1));
 
             // when & then
             assertThatThrownBy(() -> orderService.save(1L, request))

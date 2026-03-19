@@ -17,15 +17,9 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-     //기본 셋팅
     public static final String BEARER_PREFIX = "Bearer ";
     private static final long ACCESS_TOKEN_TIME = 60 * 60 * 1000L; // token 발급 시간 60분
     private static final long REFRESH_TOKEN_TIME = 14 * 24 * 60 * 60 * 1000L; // Refresh token 발급 2주
-
-    // 테스트용
-//    public static final String BEARER_PREFIX = "Bearer ";
-//    private static final long ACCESS_TOKEN_TIME = 5 * 60 * 1000L; // token 발급 시간 5분
-//    private static final long REFRESH_TOKEN_TIME = 6 * 60 * 1000L; // Refresh token 발급 6분
 
     private SecretKey secretKey;
     private JwtParser jwtparser;
@@ -33,7 +27,6 @@ public class JwtUtil {
     @Value("${jwt.secret.key}")
     private String secretKeyString;
 
-    // jwt 라이브러리에서 필요한 내용들 셋팅
     @PostConstruct
     public void init() {
         byte[] bytes = Decoders.BASE64.decode(secretKeyString);
@@ -43,7 +36,6 @@ public class JwtUtil {
                 .build();
     }
 
-    // Access token 생성
     public String createAccessToken(String email, MemberRoleEnum role) {
         Date now = new Date();
         return BEARER_PREFIX + Jwts.builder()
@@ -56,7 +48,6 @@ public class JwtUtil {
                 .compact();
     }
 
-    // Refresh Token 생성 (수명 연장)
     public String createRefreshToken(String email) {
         Date now = new Date();
         return BEARER_PREFIX + Jwts.builder()
@@ -76,7 +67,6 @@ public class JwtUtil {
         throw new NullPointerException("토큰이 없거나 유효하지 않습니다.");
     }
 
-    // substringToken 으로 가공된 토큰을 받아 검증
     public boolean validateToken(String token) {
         if (token == null || token.isBlank()) return false;
         try {
@@ -110,7 +100,6 @@ public class JwtUtil {
         }
     }
 
-    // 토큰에 있는 내용 꺼내기 (정보 추출용)
     private Claims getClaims (String token) {
         return jwtparser.parseSignedClaims(token).getPayload();
     }

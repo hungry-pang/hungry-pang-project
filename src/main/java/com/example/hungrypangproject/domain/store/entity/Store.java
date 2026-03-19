@@ -3,9 +3,7 @@ package com.example.hungrypangproject.domain.store.entity;
 import com.example.hungrypangproject.common.entity.BaseEntity;
 import com.example.hungrypangproject.domain.member.entity.Member;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 
@@ -13,6 +11,8 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "stores")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class Store extends BaseEntity {
 
     @Id

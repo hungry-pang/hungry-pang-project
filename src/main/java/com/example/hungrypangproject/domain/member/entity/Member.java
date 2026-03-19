@@ -21,9 +21,6 @@ public class Member extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long memberId;
 
-    @Version
-    private Long version;
-
     @Column(nullable = false, length = 20)
     private String nickname;
 
@@ -39,7 +36,7 @@ public class Member extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String password;
 
-    @Column(nullable = false)
+    @Column(name = "points", nullable = false)
     private BigDecimal totalPoint;
 
     @Column(nullable = false)
