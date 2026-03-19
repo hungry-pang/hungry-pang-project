@@ -53,7 +53,8 @@ public class RedisConfig {
 
         // 캐시별 TTL 설정
         Map<String, RedisCacheConfiguration> cacheConfigs = Map.of(
-                "userOrderCount", defaultConfig.entryTtl(Duration.ofMinutes(30))
+                "userOrderCount", defaultConfig.entryTtl(Duration.ofMinutes(30)),
+                "memberProfile", defaultConfig.entryTtl(Duration.ofMinutes(60))
                 // 추가 양식
                 // "캐시명",         defaultConfig.entryTtl(Duration.ofMinutes(5))
         );
@@ -62,26 +63,5 @@ public class RedisConfig {
                 .cacheDefaults(defaultConfig.entryTtl(Duration.ofMinutes(10)))
                 .withInitialCacheConfigurations(cacheConfigs)
                 .build();
-    }
-
-    @Bean
-    public CacheManager cacheManagerUser(RedisConnectionFactory connectionFactory) {
-
-        // 로컬 데이터 직렬화
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer();
-
-        // Redis cache, TTL 설정
-        RedisCacheConfiguration cacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
-                .entryTtl(Duration.ofMinutes(60));
-
-        return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(cacheConfiguration)
-                .build();
-
     }
 }
