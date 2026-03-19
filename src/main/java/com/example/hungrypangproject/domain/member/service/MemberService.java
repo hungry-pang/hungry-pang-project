@@ -12,6 +12,8 @@ import com.example.hungrypangproject.domain.member.repository.MemberRepository;
 import com.example.hungrypangproject.domain.membership.service.MembershipService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -139,6 +141,7 @@ public class MemberService {
         return LoginInfo.register(member, newAccess, newRefresh);
     }
 
+    // [V1] 회원 프로필 조회 - 기존 API 캐시적용 x, DB 저장
     @Transactional(readOnly = true)
     public SearchMemberResponse findOne(Long memberId) {
         Member member = memberRepository.findById(memberId)
@@ -147,7 +150,19 @@ public class MemberService {
         return SearchMemberResponse.register(member);
     }
 
+    // [V2] 회원 프로필 조회 - 새로운 API 캐시적용 o
+    @Cacheable(value = "memberProfile", key = "#memberId")
+    @Transactional(readOnly = true)
+    public SearchMemberResponse findOneV2(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+
+        return SearchMemberResponse.register(member);
+    }
+
+
     @Transactional
+    @CacheEvict(value = "memberProfile", key = "#memberId")
     public UpdateMemberResponse update(Long memberId, UpdateMemberRequest request) {
 
         Member member = memberRepository.findById(memberId)
@@ -163,6 +178,7 @@ public class MemberService {
     }
 
     @Transactional
+    @CacheEvict(value = "memberProfile", key = "#memberId")
     public UpdateMemberResponse updateMemberRole(Long memberId, UpdateMemberRequest request) {
 
         Member member = memberRepository.findById(memberId)

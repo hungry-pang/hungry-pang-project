@@ -68,11 +68,19 @@ public class MemberController {
         return ResponseEntity.ok().headers(headers).body(info);
     }
 
-    @GetMapping("/members/{memberId}")
+    @GetMapping("/v1/members/{memberId}")
     public ResponseEntity<SearchMemberResponse> getId(
             @PathVariable Long memberId
     ) {
         SearchMemberResponse response = memberService.findOne(memberId);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping("/v2/members/{memberId}")
+    public ResponseEntity<SearchMemberResponse> getIdV2(
+            @PathVariable Long memberId
+    ) {
+        SearchMemberResponse response = memberService.findOneV2(memberId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

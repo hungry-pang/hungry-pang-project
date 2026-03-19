@@ -1,22 +1,21 @@
 package com.example.hungrypangproject.domain.member.dto.respons;
 
 import com.example.hungrypangproject.domain.member.entity.Member;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 
 @Getter
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor
 public class SearchMemberResponse {
 
-    private final Long MemberId;
-    private final String email;
-    private final String nickName;
-    private final String address;
-    private final String phoneNo;
-    private final BigDecimal pointBalance;
+    private Long memberId;
+    private String email;
+    private String nickName;
+    private String address;
+    private String phoneNo;
+    private BigDecimal pointBalance;
 
     public static SearchMemberResponse register(Member member) {
         return new SearchMemberResponse(
