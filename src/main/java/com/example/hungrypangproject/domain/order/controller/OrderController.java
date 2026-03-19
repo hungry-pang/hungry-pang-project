@@ -71,4 +71,12 @@ public class OrderController {
         orderService.updateOrderStatus(userId, orderId, request);
         return ApiResponse.ok();
     }
+
+    @GetMapping("/count")
+    public ApiResponse<Long> getOrderCount(
+            @AuthenticationPrincipal MemberUserDetails userDetails
+    ) {
+        Long userId = userDetails.getMember().getMemberId();
+        return ApiResponse.ok(orderService.getOrderCount(userId));
+    }
 }
