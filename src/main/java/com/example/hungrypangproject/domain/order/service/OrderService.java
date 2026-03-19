@@ -28,6 +28,8 @@ import com.example.hungrypangproject.domain.store.entity.StoreStatus;
 import com.example.hungrypangproject.domain.store.exception.StoreException;
 import com.example.hungrypangproject.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +53,7 @@ public class OrderService {
     private final PointRepository pointRepository;
 
 
+    @CacheEvict(value = "userOrderCount", key = "#userId")
     @Transactional
     public CreateOrderResponse save(Long userId, CreateOrderRequest request) {
         Store store = storeRepository.findById(request.getStoreId()).orElseThrow(
@@ -209,6 +212,12 @@ public class OrderService {
                 () -> new OrderException(ErrorCode.ORDER_NOT_FOUND)
         );
         order.refund(userId);
+    }
+
+    @Cacheable(value = "userOrderCount", key = "#userId")
+    @Transactional(readOnly = true)
+    public long getOrderCount(Long userId) {
+        return orderRepository.countByMemberMemberId(userId);
     }
 
 }

@@ -14,6 +14,7 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
+import java.util.Map;
 
 @Configuration
 public class RedisConfig {
@@ -38,6 +39,33 @@ public class RedisConfig {
 
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .serializeKeysWith(
+                        RedisSerializationContext.SerializationPair
+                                .fromSerializer(new StringRedisSerializer())
+                )
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair
+                                .fromSerializer(new GenericJackson2JsonRedisSerializer())
+                )
+                .disableCachingNullValues();
+
+        // 캐시별 TTL 설정
+        Map<String, RedisCacheConfiguration> cacheConfigs = Map.of(
+                "userOrderCount", defaultConfig.entryTtl(Duration.ofMinutes(30))
+                // 추가 양식
+                // "캐시명",         defaultConfig.entryTtl(Duration.ofMinutes(5))
+        );
+
+        return RedisCacheManager.builder(connectionFactory)
+                .cacheDefaults(defaultConfig.entryTtl(Duration.ofMinutes(10)))
+                .withInitialCacheConfigurations(cacheConfigs)
+                .build();
+    }
+
+    @Bean
+    public CacheManager cacheManagerUser(RedisConnectionFactory connectionFactory) {
 
         // 로컬 데이터 직렬화
         ObjectMapper objectMapper = new ObjectMapper();

@@ -1,6 +1,7 @@
 package com.example.hungrypangproject.domain.coupon.service;
 
 import com.example.hungrypangproject.common.exception.ErrorCode;
+import com.example.hungrypangproject.common.lock.RedisLock;
 import com.example.hungrypangproject.domain.coupon.dto.CouponCreateRequest;
 import com.example.hungrypangproject.domain.coupon.dto.CouponCreateResponse;
 import com.example.hungrypangproject.domain.coupon.dto.CouponIssueResponse;
@@ -40,6 +41,7 @@ public class CouponService {
     }
 
     @Transactional
+    @RedisLock(keyPrefix = "coupon:issue:", argIndex = 0, ttlSeconds = 3)
     public CouponIssueResponse issueCoupon(Long couponId) {
         Coupon coupon = couponRepository.findById(couponId)
                 .orElseThrow(() -> new CouponException(ErrorCode.COUPON_NOT_FOUND));
