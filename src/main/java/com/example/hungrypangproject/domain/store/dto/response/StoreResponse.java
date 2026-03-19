@@ -19,6 +19,7 @@ public class StoreResponse implements Serializable {
     private BigDecimal deliveryFee;
     private StoreStatus status;
     private BigDecimal minimumOrder;
+    private Long totalReviewCount;
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
 
@@ -29,6 +30,7 @@ public class StoreResponse implements Serializable {
                 .deliveryFee(store.getDeliveryFee())
                 .status(store.getStatus())
                 .minimumOrder(store.getMinimumOrder())
+                .totalReviewCount(store.getTotalReviewCount())
                 .createdAt(store.getCreatedAt())
                 .modifiedAt(store.getModifiedAt())
                 .build();

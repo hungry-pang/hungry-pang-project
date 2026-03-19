@@ -23,6 +23,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -32,6 +34,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.testcontainers.shaded.org.bouncycastle.asn1.x500.style.RFC4519Style.member;
 
 @ExtendWith(MockitoExtension.class)
 public class ReviewServiceTest {
@@ -44,6 +47,12 @@ public class ReviewServiceTest {
 
     @Mock
     private StoreRepository storeRepository;
+
+    @Mock
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Mock
+    private HashOperations<String, Object, Object> hashOperations;
 
     @InjectMocks
     private ReviewService reviewService;
@@ -80,6 +89,7 @@ public class ReviewServiceTest {
         when(order.getOrderStatus()).thenReturn(OrderStatus.COMPLETED);
 
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(storeRepository.findByIdWithPessimisticLock(1L)).thenReturn(Optional.of(store));
         when(reviewRepository.existsByOrderId(1L)).thenReturn(false);
 
         when(reviewRepository.save(any(Review.class))).thenAnswer(invocation -> {
@@ -101,8 +111,10 @@ public class ReviewServiceTest {
         assertEquals("정말 맛있어요!", response.getContent());
 
         verify(orderRepository, times(1)).findById(1L);
+        verify(storeRepository, times(1)).findByIdWithPessimisticLock(1L);
         verify(reviewRepository, times(1)).existsByOrderId(1L);
         verify(reviewRepository, times(1)).save(any(Review.class));
+        verify(store, times(1)).increaseReviewCount();
     }
 
     @Test
@@ -123,8 +135,10 @@ public class ReviewServiceTest {
         assertEquals(ErrorCode.ORDER_NOT_FOUND.getMessage(), exception.getMessage());
 
         verify(orderRepository, times(1)).findById(1L);
+        verify(storeRepository, never()).findByIdWithPessimisticLock(anyLong());
         verify(reviewRepository, never()).existsByOrderId(anyLong());
         verify(reviewRepository, never()).save(any(Review.class));
+        verify(store, never()).increaseReviewCount();
     }
 
     @Test
@@ -136,9 +150,14 @@ public class ReviewServiceTest {
         ReflectionTestUtils.setField(request, "content", "정말 맛있어요!");
 
         when(member.getMemberId()).thenReturn(1L);
+        when(store.getId()).thenReturn(1L);
+
         when(order.getMember()).thenReturn(member);
+        when(order.getStore()).thenReturn(store);
         when(order.getOrderStatus()).thenReturn(OrderStatus.PREPARING);
+
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(storeRepository.findByIdWithPessimisticLock(1L)).thenReturn(Optional.of(store));
 
         // when
         ReviewException exception = assertThrows(ReviewException.class,
@@ -148,8 +167,10 @@ public class ReviewServiceTest {
         assertEquals(ErrorCode.REVIEW_ORDER_NOT_COMPLETED.getMessage(), exception.getMessage());
 
         verify(orderRepository, times(1)).findById(1L);
+        verify(storeRepository, times(1)).findByIdWithPessimisticLock(1L);
         verify(reviewRepository, never()).existsByOrderId(anyLong());
         verify(reviewRepository, never()).save(any(Review.class));
+        verify(store, never()).increaseReviewCount();
     }
 
     @Test
@@ -161,9 +182,12 @@ public class ReviewServiceTest {
         ReflectionTestUtils.setField(request, "content", "정말 맛있어요!");
 
         when(member.getMemberId()).thenReturn(2L);
+        when(store.getId()).thenReturn(1L);
+
         when(order.getMember()).thenReturn(member);
         when(order.getStore()).thenReturn(store);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(storeRepository.findByIdWithPessimisticLock(1L)).thenReturn(Optional.of(store));
 
         // when
         ReviewException exception = assertThrows(ReviewException.class,
@@ -173,8 +197,10 @@ public class ReviewServiceTest {
         assertEquals(ErrorCode.REVIEW_ORDER_FORBIDDEN.getMessage(), exception.getMessage());
 
         verify(orderRepository, times(1)).findById(1L);
+        verify(storeRepository, times(1)).findByIdWithPessimisticLock(1L);
         verify(reviewRepository, never()).existsByOrderId(anyLong());
         verify(reviewRepository, never()).save(any(Review.class));
+        verify(store, never()).increaseReviewCount();
     }
 
     @Test
@@ -186,11 +212,14 @@ public class ReviewServiceTest {
         ReflectionTestUtils.setField(request, "content", "정말 맛있어요!");
 
         when(member.getMemberId()).thenReturn(1L);
+        when(store.getId()).thenReturn(1L);
 
         when(order.getMember()).thenReturn(member);
+        when(order.getStore()).thenReturn(store);
         when(order.getOrderStatus()).thenReturn(OrderStatus.COMPLETED);
 
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(storeRepository.findByIdWithPessimisticLock(1L)).thenReturn(Optional.of(store));
         when(reviewRepository.existsByOrderId(1L)).thenReturn(true);
 
         // when
@@ -201,8 +230,10 @@ public class ReviewServiceTest {
         assertEquals(ErrorCode.REVIEW_ALREADY_EXISTS.getMessage(), exception.getMessage());
 
         verify(orderRepository, times(1)).findById(1L);
+        verify(storeRepository, times(1)).findByIdWithPessimisticLock(1L);
         verify(reviewRepository, times(1)).existsByOrderId(1L);
         verify(reviewRepository, never()).save(any(Review.class));
+        verify(store, never()).increaseReviewCount();
     }
 
     @Test
@@ -382,12 +413,18 @@ public class ReviewServiceTest {
         when(review.getMember()).thenReturn(member);
         when(member.getMemberId()).thenReturn(1L);
 
+        when(review.getStore()).thenReturn(store);
+        when(store.getId()).thenReturn(1L);
+        when(storeRepository.findByIdWithPessimisticLock(1L)).thenReturn(Optional.of(store));
+
         // when
         reviewService.deleteReview(1L, 1L);
 
         // then
         verify(reviewRepository, times(1)).findByIdAndStatusNot(1L, ReviewStatus.DELETED);
+        verify(storeRepository, times(1)).findByIdWithPessimisticLock(1L);
         verify(review, times(1)).delete();
+        verify(store, times(1)).decreaseReviewCount();
     }
 
     @Test
@@ -398,14 +435,14 @@ public class ReviewServiceTest {
                 .thenReturn(Optional.empty());
 
         // when
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        ReviewException exception = assertThrows(ReviewException.class,
                 () -> reviewService.deleteReview(1L, 1L));
 
         // then
-        assertEquals("리뷰를 찾을 수 없습니다.", exception.getMessage());
+        assertEquals(ErrorCode.REVIEW_NOT_FOUND.getMessage(), exception.getMessage());
 
         verify(reviewRepository, times(1)).findByIdAndStatusNot(1L, ReviewStatus.DELETED);
-        verify(reviewRepository, never()).save(any());
+        verify(storeRepository, never()).findByIdWithPessimisticLock(anyLong());
     }
 
     @Test
@@ -428,6 +465,7 @@ public class ReviewServiceTest {
         assertEquals(ErrorCode.REVIEW_FORBIDDEN.getMessage(), exception.getMessage());
 
         verify(reviewRepository, times(1)).findByIdAndStatusNot(1L, ReviewStatus.DELETED);
+        verify(storeRepository, never()).findByIdWithPessimisticLock(anyLong());
         verify(review, never()).delete();
     }
 
@@ -439,13 +477,19 @@ public class ReviewServiceTest {
 
         when(reviewRepository.findById(1L))
                 .thenReturn(Optional.of(review));
+        when(stringRedisTemplate.opsForHash())
+                .thenReturn(hashOperations);
+        when(hashOperations.increment("review:like:delta", "1", 1))
+                .thenReturn(1L);
 
         // when
         reviewService.likeReview(1L);
 
         // then
         verify(reviewRepository, times(1)).findById(1L);
-        verify(review, times(1)).increaseLikeCount(1L);
+        verify(stringRedisTemplate, times(1)).opsForHash();
+        verify(hashOperations, times(1))
+                .increment("review:like:delta", "1", 1);
     }
 
     @Test
@@ -462,7 +506,7 @@ public class ReviewServiceTest {
         // then
         assertEquals(ErrorCode.REVIEW_NOT_FOUND.getMessage(), exception.getMessage());
         verify(reviewRepository, times(1)).findById(1L);
-        verify(reviewRepository, never()).findByIdAndStatusNot(anyLong(), any());
+        verify(stringRedisTemplate, never()).opsForHash();
     }
 
     @Test
@@ -473,13 +517,19 @@ public class ReviewServiceTest {
 
         when(reviewRepository.findById(1L))
                 .thenReturn(Optional.of(review));
+        when(stringRedisTemplate.opsForHash())
+                .thenReturn(hashOperations);
+        when(hashOperations.increment("review:like:delta", "1", -1))
+                .thenReturn(0L);
 
         // when
         reviewService.unlikeReview(1L);
 
         // then
         verify(reviewRepository, times(1)).findById(1L);
-        verify(review, times(1)).decreaseLikeCount(1L);
+        verify(stringRedisTemplate, times(1)).opsForHash();
+        verify(hashOperations, times(1))
+                .increment("review:like:delta", "1", -1);
     }
 
     @Test
@@ -496,6 +546,6 @@ public class ReviewServiceTest {
         // then
         assertEquals(ErrorCode.REVIEW_NOT_FOUND.getMessage(), exception.getMessage());
         verify(reviewRepository, times(1)).findById(1L);
-        verify(reviewRepository, never()).findByIdAndStatusNot(anyLong(), any());
+        verify(stringRedisTemplate, never()).opsForHash();
     }
 }

@@ -46,7 +46,11 @@ public class ReviewService {
                 .orElseThrow(() -> new ReviewException(ErrorCode.ORDER_NOT_FOUND));
 
         Member member = order.getMember();
-        Store store = order.getStore();
+        Long storeId = order.getStore().getId();
+
+        // 비관적 락으로 식당 조회
+        Store store = storeRepository.findByIdWithPessimisticLock(storeId)
+                .orElseThrow(() -> new ReviewException(ErrorCode.STORE_NOT_FOUND));
 
         // 본인 주문인지 확인
         if (!member.getMemberId().equals(loginMemberId)) {
@@ -75,6 +79,9 @@ public class ReviewService {
 
         // 리뷰 저장
         Review savedReview = reviewRepository.save(review);
+
+        // 식당 총 리뷰 수 증가
+        store.increaseReviewCount();
 
         // DTO 변환 후 반환
         return ReviewResponse.from(savedReview);
@@ -139,15 +146,25 @@ public class ReviewService {
     @CacheEvict(value = "storeReviews", allEntries = true)
     public void deleteReview(Long reviewId, Long loginMemberId) {
 
-        // 삭제되지 않은 리뷰 조회
+        // 삭제되지 않은 리뷰 조회 (DELETED 상태 제외)
         Review review = reviewRepository.findByIdAndStatusNot(reviewId, ReviewStatus.DELETED)
-                .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ReviewException(ErrorCode.REVIEW_NOT_FOUND));
 
-        // 본인 리뷰인지 검증
+        // 본인 리뷰인지 검증 (작성자만 삭제 가능)
         validateReviewOwner(review, loginMemberId);
 
-        // soft delete 처리
+        // 리뷰가 속한 식당 ID 조회
+        Long storeId = review.getStore().getId();
+
+        // 동시성 문제 방지를 위해 비관적 락으로 식당 조회
+        // → 여러 트랜잭션이 동시에 리뷰 수를 수정하지 못하도록 row lock
+        Store store = storeRepository.findByIdWithPessimisticLock(storeId)
+                .orElseThrow(() -> new ReviewException(ErrorCode.STORE_NOT_FOUND));
+
+        // 리뷰 soft delete 처리 (상태를 DELETED로 변경)
         review.delete();
+        // 식당 총 리뷰 수 감소 (리뷰 삭제에 따른 집계 값 반영)
+        store.decreaseReviewCount();
     }
 
     // 리뷰 좋아요 등록

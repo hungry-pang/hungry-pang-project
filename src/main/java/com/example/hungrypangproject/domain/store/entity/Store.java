@@ -19,6 +19,10 @@ public class Store extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "member_id")
+    private Member seller;
+
     @Column(name = "store_name", nullable = false, length = 10)
     private String storeName;
 
@@ -32,9 +36,8 @@ public class Store extends BaseEntity {
     @Column(name = "minimum_order")
     private BigDecimal minimumOrder;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false, name = "member_id")
-    private Member seller;
+    @Column(name = "total_review_count", nullable = false)
+    private Long totalReviewCount;
 
     public static Store create(
             String storeName,
@@ -48,6 +51,7 @@ public class Store extends BaseEntity {
         store.status = StoreStatus.OPEN;
         store.minimumOrder = minimumOrder;
         store.seller = seller;
+        store.totalReviewCount = 0L;
         return store;
     }
 
@@ -64,4 +68,8 @@ public class Store extends BaseEntity {
     public boolean isOwner(Long memberId) {
         return this.seller.getMemberId().equals(memberId);
     }
+
+    public void increaseReviewCount() { this.totalReviewCount++; }
+
+    public void decreaseReviewCount() { if (this.totalReviewCount > 0) { this.totalReviewCount--; }}
 }
