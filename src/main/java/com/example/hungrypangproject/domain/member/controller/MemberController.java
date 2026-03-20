@@ -19,16 +19,6 @@ public class MemberController {
 
     private final MemberService memberService;
 
-    /*
-     * 1. 회원가입 (JWT 통과)
-     * 2. 로그인 (JWT 통과)
-     * 3. RefreshToke 새로운 토큰 발급 (JWT 통과)
-     * 4. 회원정보 조회
-     * 5. 회원정보 수정
-     * 5. 역할 상태 변경
-     * 7. 로그아웃
-     */
-
     @PostMapping("/signup")
     public ResponseEntity<SaveMemberResponse> signup (
             @Valid @RequestBody SaveMemberRequest request

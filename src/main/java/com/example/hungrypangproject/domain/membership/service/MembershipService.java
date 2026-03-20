@@ -26,7 +26,7 @@ public class MembershipService {
     private final UserMembershipRepository userMembershipRepository;
 
     /*
-    * 1. 맴버십 생성 : 회원가입 시, 초기 셋팅 NORMAL (member에서 호출)
+    * 1. 맴버십 생성 : 회원가입 시, 초기 자동 셋팅 NORMAL (member에서 호출)
     * 2. 멤버십 등급 : 금액 합산 + 승급 조건 체크 + 등급 변경
     * 3. 멤버십 상태 변경 : 현재 등급 상태 조회, 누적액, 승급까지 남은 금액(계산) 조회
     */
@@ -67,7 +67,6 @@ public class MembershipService {
         Membership upGrade = membershipRepository.findByGrade(targetGrade)
                 .orElseThrow(()->new ServiceException(ErrorCode.MEMBERSHIP_NOT_GRADE));
 
-        // 상태 변경
         userStatus.updateStatus(paymentAmount, upGrade);
         userMembershipRepository.save(userStatus);
 
@@ -81,7 +80,7 @@ public class MembershipService {
             UserMembership userStatus = userMembershipRepository.findByMember(member)
                     .orElseThrow(() -> new ServiceException(ErrorCode.NOT_FOUND_USER_MEMBERSHIP));
 
-            // 다음 등급까지 남은 금액 계산
+        // 다음 등급까지 남은 금액 계산
         Optional<Membership> nextGrade = membershipRepository.findByGrade(GradeEnum.NORMAL);
         BigDecimal remainAmount = nextGrade
                 .map(m -> m.getMinTotalPaidAmount().subtract(userStatus.getTotalPrice()))

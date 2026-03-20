@@ -37,14 +37,13 @@ public class MemberService {
     private final MemberCacheService memberCacheService;
 
     /*
-     * 1. 회원가입 : 회원가입 동시에 멤버십 등급 NORMAL 초기화
+     * 1. 회원가입 : 회원가입 동시에 멤버십 등급 NORMAL 자동 설정
      * 2. 로그인 : AccessToken, RefreshToken 발급
-     * 3. RefreshToke 재발급  -> 수정 필요
-     * 4. 회원정보 조회
-     * 5. 회원정보 수정
-     * 6. 역할 상태 변경
-     * 7. 로그아웃
-     * 8. 캐시 조회
+     * 3. RefreshToke 재발급
+     * 4. 회원정보 조회 : v1, v2
+     * 5. 회원정보 수정 : 캐시 삭제 추가
+     * 6. 역할 상태 변경 : 기본 USER, 캐시 삭제 추가
+     * 7. 로그아웃 : 블랙리스트 반영
      */
 
     @Transactional
