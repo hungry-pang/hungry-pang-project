@@ -2,7 +2,6 @@ package com.example.hungrypangproject.domain.review.scheduler;
 
 import com.example.hungrypangproject.domain.review.dto.internal.ReviewLikeDelta;
 import com.example.hungrypangproject.domain.review.repository.ReviewBulkRepository;
-import com.example.hungrypangproject.domain.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
