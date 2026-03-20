@@ -48,7 +48,6 @@ public class MembershipService {
         return MembershipResponse.register(userStatus, BigDecimal.ZERO);
     }
 
-    @Transactional
     public void calculateUpgrade(Member member, BigDecimal paymentAmount) {
         log.info("승급 등금 계산: memberId {}, 결제금액 {}", member.getMemberId(), paymentAmount);
 

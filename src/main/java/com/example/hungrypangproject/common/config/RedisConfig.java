@@ -49,11 +49,12 @@ public class RedisConfig {
                 )
                 .disableCachingNullValues();
 
-        // 캐시별 TTL 설정
+        /* 캐시별 TTL 설정
+         * 추가 양식 : "캐시명", defaultConfig.entryTtl(Duration.ofMinutes(5)) 넣으면 됩니다.
+         */
         Map<String, RedisCacheConfiguration> cacheConfigs = Map.of(
-                "userOrderCount", defaultConfig.entryTtl(Duration.ofMinutes(30))
-                // 추가 양식
-                // "캐시명",         defaultConfig.entryTtl(Duration.ofMinutes(5))
+                "userOrderCount", defaultConfig.entryTtl(Duration.ofMinutes(30)),
+                "memberProfile", defaultConfig.entryTtl(Duration.ofMinutes(60))
         );
 
         return RedisCacheManager.builder(connectionFactory)
