@@ -16,7 +16,7 @@ public class RefundHistoryService {
     private final RefundRepository refundRepository;
 
     // 환불 요청 이력 저장
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void saveRequestHistory(Long paymentId, BigDecimal amount, String reason, String refundGroupId) {
         Refund requestRefund = Refund.createRequest(
                 paymentId, amount, reason,  refundGroupId
