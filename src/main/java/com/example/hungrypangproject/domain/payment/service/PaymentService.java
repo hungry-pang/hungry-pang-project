@@ -103,13 +103,7 @@ public class PaymentService {
         String dbPaymentId = "PAY_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
 
         // 5. Payment 엔티티 생성 및 저장
-        Payment payment = Payment.builder()
-                .dbPaymentId(dbPaymentId)
-                .order(order)
-                .totalAmount(request.getAmount())
-                .pointsToUse(pointsToUse)
-                .status(PaymentStatus.PENDING)
-                .build();
+        Payment payment = Payment.create(dbPaymentId, order, request.getAmount(), pointsToUse);
 
         paymentRepository.save(payment);
         log.info("결제 준비 완료 - dbPaymentId: {}", dbPaymentId);
