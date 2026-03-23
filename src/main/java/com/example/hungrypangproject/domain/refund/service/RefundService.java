@@ -6,6 +6,7 @@ import com.example.hungrypangproject.domain.payment.entity.Payment;
 import com.example.hungrypangproject.domain.payment.repository.PaymentRepository;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllRequest;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllResponse;
+import com.example.hungrypangproject.domain.refund.dto.RefundDetailResponse;
 import com.example.hungrypangproject.domain.refund.entity.Refund;
 import com.example.hungrypangproject.domain.refund.exception.RefundException;
 import com.example.hungrypangproject.domain.refund.repository.RefundRepository;
@@ -83,6 +84,21 @@ public class RefundService {
             saveFailHistorySafely(payment, reason, portOneRefundId, refundGroupId, e.getMessage());
             throw new RefundException(ErrorCode.PORTONE_API_ERROR, e.getMessage());
         }
+    }
+
+    @Transactional(readOnly = true)
+    public RefundDetailResponse getRefundDetail(Long memberId, Long refundId) {
+        Refund refund = refundRepository.findById(refundId)
+                .orElseThrow(() -> new RefundException(ErrorCode.REFUND_NOT_FOUND));
+
+        Payment payment = paymentRepository.findById(refund.getPaymentId())
+                .orElseThrow(() -> new RefundException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        if (!payment.getOrder().getMember().getMemberId().equals(memberId)) {
+            throw new RefundException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+        }
+
+        return RefundDetailResponse.of(refund, payment.getDbPaymentId(), payment.getOrder().getId());
     }
 
     private String requestPortOneRefund(Payment payment, RefundAllRequest refundAllRequest) {

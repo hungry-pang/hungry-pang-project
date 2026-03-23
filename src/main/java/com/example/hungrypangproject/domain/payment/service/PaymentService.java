@@ -6,6 +6,7 @@ import com.example.hungrypangproject.domain.order.entity.OrderStatus;
 import com.example.hungrypangproject.domain.order.repository.OrderRepository;
 import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareRequest;
 import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareResponse;
+import com.example.hungrypangproject.domain.payment.dto.PaymentDetailResponse;
 import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyRequest;
 import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyResponse;
 import com.example.hungrypangproject.domain.payment.dto.WebhookRequest;
@@ -53,6 +54,17 @@ public class PaymentService {
 
     @Value("${portone.api.v2-secret:${portone.api.secret}}")
     private String portOneV2Secret;
+
+    /**
+     * 결제 상세조회
+     */
+    @Transactional(readOnly = true)
+    public PaymentDetailResponse getPaymentDetail(Long memberId, String dbPaymentId) {
+        Payment payment = paymentRepository.findByDbPaymentIdAndOrderMemberMemberId(dbPaymentId, memberId)
+                .orElseThrow(() -> new PaymentException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        return PaymentDetailResponse.from(payment);
+    }
 
     /**
      * 결제 준비

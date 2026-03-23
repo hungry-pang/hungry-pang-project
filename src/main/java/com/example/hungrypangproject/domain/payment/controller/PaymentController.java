@@ -1,8 +1,10 @@
 package com.example.hungrypangproject.domain.payment.controller;
 
+import com.example.hungrypangproject.common.dto.ApiResponse;
 import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareRequest;
 import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareResponse;
+import com.example.hungrypangproject.domain.payment.dto.PaymentDetailResponse;
 import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyRequest;
 import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyResponse;
 import com.example.hungrypangproject.domain.payment.dto.WebhookRequest;
@@ -22,12 +24,22 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    @GetMapping("/{dbPaymentId}")
+    public ResponseEntity<ApiResponse<PaymentDetailResponse>> getPaymentDetail(
+            @AuthenticationPrincipal MemberUserDetails userDetails,
+            @PathVariable String dbPaymentId
+    ) {
+        Long memberId = userDetails.getMember().getMemberId();
+        PaymentDetailResponse response = paymentService.getPaymentDetail(memberId, dbPaymentId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
     /**
      * 결제 준비 API
      * 클라이언트에서 결제를 시작하기 전에 호출하여 결제 정보를 생성
      */
     @PostMapping("/prepare")
-    public ResponseEntity<PaymentPrepareResponse> preparePayment(
+    public ResponseEntity<ApiResponse<PaymentPrepareResponse>> preparePayment(
             @AuthenticationPrincipal MemberUserDetails userDetails,
             @Valid @RequestBody PaymentPrepareRequest request) {
 
@@ -35,7 +47,7 @@ public class PaymentController {
 
         Long memberId = userDetails.getMember().getMemberId();
         PaymentPrepareResponse response = paymentService.preparePayment(memberId, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     /**
@@ -43,7 +55,7 @@ public class PaymentController {
      * 클라이언트에서 PortOne 결제 완료 후 호출하여 결제를 검증하고 주문 상태를 변경
      */
     @PostMapping("/verify")
-    public ResponseEntity<PaymentVerifyResponse> verifyPayment(
+    public ResponseEntity<ApiResponse<PaymentVerifyResponse>> verifyPayment(
             @AuthenticationPrincipal MemberUserDetails userDetails,
             @Valid @RequestBody PaymentVerifyRequest request) {
 
@@ -52,7 +64,7 @@ public class PaymentController {
 
         Long memberId = userDetails.getMember().getMemberId();
         PaymentVerifyResponse response = paymentService.verifyPayment(memberId, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     /**
@@ -65,12 +77,12 @@ public class PaymentController {
      * - 멱등성이 보장되어 중복 호출 시에도 안전합니다
      */
     @PostMapping("/webhook")
-    public ResponseEntity<String> handleWebhook(@RequestBody WebhookRequest request) {
+    public ResponseEntity<ApiResponse<String>> handleWebhook(@RequestBody WebhookRequest request) {
 
         log.info("웹훅 수신 - impUid: {}, merchantUid: {}, status: {}",
                 request.getImp_uid(), request.getMerchant_uid(), request.getStatus());
 
         String result = paymentService.processWebhook(request);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 }
