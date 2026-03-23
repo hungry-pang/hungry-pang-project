@@ -106,11 +106,7 @@ public class MemberService {
         String email = jwtUtil.extractEmail(token);
         String savedToken = memberCacheService.getRefreshToken(email);
 
-        if (savedToken == null) {
-            throw new ServiceException(ErrorCode.REFRESH_TOKEN_EXPIRED);
-        }
-
-        if (!savedToken.equals(refreshToken)) {
+        if (savedToken == null || !savedToken.equals(refreshToken)) {
             log.error("RefreshToken이 만료되었습니다. 회원: {}", email);
             throw new ServiceException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
@@ -143,20 +139,14 @@ public class MemberService {
     // [V1] 회원 프로필 조회 - 기존 API 캐시적용 x, DB 저장
     @Transactional(readOnly = true)
     public SearchMemberResponse findOne(Long memberId) {
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
-
-        return SearchMemberResponse.register(member);
+        return SearchMemberResponse.register(getMemberById(memberId));
     }
 
     // [V2] 회원 프로필 조회 - 새로운 API 캐시적용 o
     @Cacheable(value = "memberProfile", key = "#memberId")
     @Transactional(readOnly = true)
     public SearchMemberResponse findOneV2(Long memberId) {
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
-
-        return SearchMemberResponse.register(member);
+        return SearchMemberResponse.register(getMemberById(memberId));
     }
 
 
@@ -164,10 +154,8 @@ public class MemberService {
     @CacheEvict(value = "memberProfile", key = "#memberId")
     public UpdateMemberResponse update(Long memberId, UpdateMemberRequest request) {
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
-
-        member.updateInfo(
+       Member member = getMemberById(memberId);
+       member.updateInfo(
                 request.getNickname(),
                 request.getAddress(),
                 request.getPhoneNo()
@@ -180,9 +168,7 @@ public class MemberService {
     @CacheEvict(value = "memberProfile", key = "#memberId")
     public UpdateMemberResponse updateMemberRole(Long memberId, UpdateMemberRequest request) {
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
-
+        Member member = getMemberById(memberId);
         member.updateRole(request.getRole());
 
         return UpdateMemberResponse.register(member);
@@ -205,5 +191,11 @@ public class MemberService {
         } catch (Exception e){
             log.info("이미 만료된 토큰입니다.");
             }
+        }
+
+        // 공통 사용 메서드 : 회원 ID로 엔티티 조회
+        private Member getMemberById (Long memberId) {
+            return memberRepository.findById(memberId)
+                    .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
         }
     }

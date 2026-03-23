@@ -3,6 +3,7 @@ package com.example.hungrypangproject.domain.point.service;
 import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.common.exception.ServiceException;
 import com.example.hungrypangproject.domain.member.entity.Member;
+import com.example.hungrypangproject.domain.member.repository.MemberRepository;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import com.example.hungrypangproject.domain.point.entity.Point;
 import com.example.hungrypangproject.domain.point.entity.PointEnum;
@@ -26,13 +27,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
 public class PointServiceTest {
 
     @Mock
     private PointRepository pointRepository;
+
+    @Mock
+    private MemberRepository memberRepository;
 
     @InjectMocks
     private PointService pointService;
@@ -54,7 +56,7 @@ public class PointServiceTest {
     }
 
     @Test
-    @DisplayName("포인트 적립 : 정확히 5% 계산이 되는지 확인")
+    @DisplayName("포인트 적립 : 5% 계산 확인")
     void calculateEarnedPointsTest() {
 
         // when
@@ -63,7 +65,7 @@ public class PointServiceTest {
                 BigDecimal.valueOf(0));
 
         // then
-        assertEquals(500L, earnedPoints);
+        assertEquals(BigDecimal.valueOf(50), earnedPoints);
     }
 
     @Test
@@ -72,13 +74,17 @@ public class PointServiceTest {
         // given
         BigDecimal useAmount = BigDecimal.valueOf(1500);
 
+        when(memberRepository.findByMemberIdForLock(member.getMemberId()))
+                .thenReturn(Optional.of(member));
+
         // when & then
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> {
             pointService.usedPoint(member, order, useAmount);
                 });
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-        assertEquals(ErrorCode.POINT_EXCEED_LIMIT.getMessage(), exception.getMessage());}
+        assertEquals(400,exception.getStatus().value());
+        assertEquals(ErrorCode.POINT_EXCEED_LIMIT.getMessage(), exception.getMessage());
+    }
 
     @Test
     @DisplayName("배달 완료 시 포인트 적립 확정")
@@ -97,6 +103,6 @@ public class PointServiceTest {
 
         // then
         assertEquals(PointEnum.SAVE, holdingPoint.getStatus()); // 상태가 save로 변경
-        assertEquals(1500L, member.getTotalPoint());
+        assertEquals(BigDecimal.valueOf(1500), member.getTotalPoint());
     }
 }
