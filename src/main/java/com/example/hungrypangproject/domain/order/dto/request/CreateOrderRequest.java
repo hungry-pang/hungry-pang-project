@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 public class CreateOrderRequest {
-    Long storeId;
+    private Long storeId;
     private List<OrderItemRequest> items;
     private String deliveryAddress;
     private BigDecimal usedPoint;

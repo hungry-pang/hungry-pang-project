@@ -21,7 +21,6 @@ import com.example.hungrypangproject.domain.order.exception.OrderException;
 import com.example.hungrypangproject.domain.order.repository.OrderItemRepository;
 import com.example.hungrypangproject.domain.order.repository.OrderRepository;
 import com.example.hungrypangproject.domain.point.exception.PointException;
-import com.example.hungrypangproject.domain.point.repository.PointRepository;
 import com.example.hungrypangproject.domain.point.service.PointService;
 import com.example.hungrypangproject.domain.store.entity.Store;
 import com.example.hungrypangproject.domain.store.entity.StoreStatus;
@@ -50,7 +49,6 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final PointService pointService;
     private final MembershipService membershipService;
-    private final PointRepository pointRepository;
 
 
     @CacheEvict(value = "userOrderCount", key = "#userId")
@@ -62,6 +60,9 @@ public class OrderService {
         if (store.getStatus() != StoreStatus.OPEN) {
             throw new StoreException(ErrorCode.STORE_NOT_OPEN);
         }
+        Member member = memberRepository.findById(userId).orElseThrow(
+                () -> new MemberException(ErrorCode.MEMBER_NOT_FOUND)
+        );
 
         Map<Long, Long> menuIdToStock = request.getItems().stream()
                 .collect(Collectors.toMap(
@@ -96,10 +97,8 @@ public class OrderService {
                 throw new OrderException(ErrorCode.ORDER_BELOW_MINIMUM);
         }
 
-        //배달료 추가
-        if(store.getDeliveryFee() != null){
-            totalPrice = totalPrice.add(store.getDeliveryFee());
-        }
+
+
 
         // 배달료를 포함하지 않은 "원가" 백업 (포인트 계산용)
         BigDecimal priceBeforePoint = totalPrice;
@@ -111,9 +110,12 @@ public class OrderService {
             usedPointAmount = BigDecimal.ZERO;
         }
 
-        Member member = memberRepository.findById(userId).orElseThrow(
-                () -> new MemberException(ErrorCode.MEMBER_NOT_FOUND)
-        );
+        //배달료 추가
+        if(store.getDeliveryFee() != null){
+            totalPrice = totalPrice.add(store.getDeliveryFee());
+        }
+
+
         //포인트 사용 부분 멤버 엔티티 추가
         if (request.getUsedPoint() != null && request.getUsedPoint().compareTo(BigDecimal.ZERO) > 0) {
 
