@@ -12,6 +12,8 @@ import com.example.hungrypangproject.domain.member.repository.MemberRepository;
 import com.example.hungrypangproject.domain.membership.service.MembershipService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -35,14 +37,13 @@ public class MemberService {
     private final MemberCacheService memberCacheService;
 
     /*
-     * 1. 회원가입 : 회원가입 동시에 멤버십 등급 NORMAL 초기화
+     * 1. 회원가입 : 회원가입 동시에 멤버십 등급 NORMAL 자동 설정
      * 2. 로그인 : AccessToken, RefreshToken 발급
-     * 3. RefreshToke 재발급  -> 수정 필요
-     * 4. 회원정보 조회
-     * 5. 회원정보 수정
-     * 6. 역할 상태 변경
-     * 7. 로그아웃
-     * 8. 캐시 조회
+     * 3. RefreshToke 재발급
+     * 4. 회원정보 조회 : v1, v2
+     * 5. 회원정보 수정 : 캐시 삭제 추가
+     * 6. 역할 상태 변경 : 기본 USER, 캐시 삭제 추가
+     * 7. 로그아웃 : 블랙리스트 반영
      */
 
     @Transactional
@@ -139,6 +140,7 @@ public class MemberService {
         return LoginInfo.register(member, newAccess, newRefresh);
     }
 
+    // [V1] 회원 프로필 조회 - 기존 API 캐시적용 x, DB 저장
     @Transactional(readOnly = true)
     public SearchMemberResponse findOne(Long memberId) {
         Member member = memberRepository.findById(memberId)
@@ -147,7 +149,19 @@ public class MemberService {
         return SearchMemberResponse.register(member);
     }
 
+    // [V2] 회원 프로필 조회 - 새로운 API 캐시적용 o
+    @Cacheable(value = "memberProfile", key = "#memberId")
+    @Transactional(readOnly = true)
+    public SearchMemberResponse findOneV2(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
+
+        return SearchMemberResponse.register(member);
+    }
+
+
     @Transactional
+    @CacheEvict(value = "memberProfile", key = "#memberId")
     public UpdateMemberResponse update(Long memberId, UpdateMemberRequest request) {
 
         Member member = memberRepository.findById(memberId)
@@ -163,6 +177,7 @@ public class MemberService {
     }
 
     @Transactional
+    @CacheEvict(value = "memberProfile", key = "#memberId")
     public UpdateMemberResponse updateMemberRole(Long memberId, UpdateMemberRequest request) {
 
         Member member = memberRepository.findById(memberId)

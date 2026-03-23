@@ -100,10 +100,15 @@ public class PaymentService {
             throw new PaymentException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
-        // 3. 중복 결제 방지 - 해당 주문에 대해 PENDING 또는 PAID 상태의 결제가 있는지 확인
+        // 3. 중복 결제 방지 - 진행 중이거나 완료된 결제가 있는지 확인
         boolean hasActivePayment = paymentRepository.existsByOrderAndStatusIn(
                 order,
-                java.util.List.of(PaymentStatus.PENDING, PaymentStatus.PAID)
+                java.util.List.of(
+                        PaymentStatus.PENDING,
+                        PaymentStatus.VERIFYING,
+                        PaymentStatus.PAID,
+                        PaymentStatus.REFUNDING
+                )
         );
 
         if (hasActivePayment) {
@@ -137,95 +142,45 @@ public class PaymentService {
 
     /**
      * 결제 검증
-     * 1. DB에서 결제 정보 조회
-     * 2. 멱등성 체크 (이미 처리된 결제인지)
-     * 3. PortOne API로 실제 결제 정보 조회
-     * 4. merchant_uid 일치 확인
-     * 5. 금액 검증 (위변조 방지)
-     * 6. 결제 상태 확인
-     * 7. 결제 성공 처리 및 주문 상태 변경
+     * 1. DB에서 결제 정보를 조회하고 VERIFYING 상태로 선점
+     * 2. 트랜잭션 밖에서 PortOne API를 호출
+     * 3. 응답 검증 후 새 트랜잭션에서 결제 성공 처리
+     * 4. 실패 시 결제 상태를 복구 또는 실패 처리
      */
-    @Transactional
     public PaymentVerifyResponse verifyPayment(Long memberId, PaymentVerifyRequest request) {
         log.info("결제 검증 시작 - paymentId: {}, dbPaymentId: {}, txId: {}",
                 request.getPaymentId(), request.getDbPaymentId(), request.getTxId());
 
-        // 1. DB에서 결제 정보 조회 (비관적 락 메서드로 변경)
-        Payment dbPayment = paymentRepository.findByDbPaymentIdWithLock(request.getDbPaymentId())
-                .orElseThrow(() -> new PaymentException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        // 본인 결제인지 검증
-        if (!dbPayment.getOrder().getMember().getMemberId().equals(memberId)) {
-            throw new PaymentException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
-        }
-
-        // 2. 멱등성 체크 (이미 처리된 결제인지)
-        if (dbPayment.getStatus() == PaymentStatus.PAID) {
-            log.info("이미 처리된 결제 - paymentId: {}", dbPayment.getId());
+        PaymentVerifyContext context = paymentInnerService.reserveForVerify(memberId, request);
+        if (context.alreadyProcessed()) {
+            log.info("이미 처리된 결제 - dbPaymentId: {}", request.getDbPaymentId());
             return PaymentVerifyResponse.alreadyProcessed();
         }
 
         try {
-            // 3. PortOne v2 API로 실제 결제 정보 조회
-            // PortOne v2 REST API의 paymentId는 결제창 호출 시 넘긴 paymentId (= dbPaymentId)
+            // 트랜잭션 밖에서 PortOne 결제 정보를 조회
             JsonNode portOnePayment = getPortOneV2Payment(request.getDbPaymentId());
 
-            // 4. 결제 ID 일치 확인
-            // PortOne v2 응답의 id 필드 = 결제창에 넘긴 paymentId = dbPaymentId
-            String responsePaymentId = extractText(portOnePayment, "id", "paymentId");
-            if (responsePaymentId != null && !request.getDbPaymentId().equals(responsePaymentId)) {
-                log.error("paymentId 불일치 - 요청: {}, 응답: {}", request.getDbPaymentId(), responsePaymentId);
-                dbPayment.failPayment();
-                throw new PaymentException(ErrorCode.PAYMENT_INFO_MISMATCH);
-            }
-
-            // 5. 금액 검증 (위변조 방지)
-            BigDecimal finalAmount = dbPayment.getTotalAmount().subtract(
-                    dbPayment.getPointsToUse() != null ? dbPayment.getPointsToUse() : BigDecimal.ZERO
-            );
-
+            validatePortOnePaymentId(request.getDbPaymentId(), portOnePayment);
             BigDecimal paidAmount = extractAmount(portOnePayment);
-            if (paidAmount.compareTo(finalAmount) != 0) {
-                log.error("결제 금액 불일치 - PortOne: {}, DB: {}", paidAmount, finalAmount);
-                dbPayment.failPayment();
-                throw new PaymentException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
-            }
+            validatePaidAmount(context.finalAmount(), paidAmount);
+            validatePaymentStatus(portOnePayment);
 
-            // 6. 결제 상태 확인
-            String paymentStatus = extractText(portOnePayment, "status");
-            if (paymentStatus == null || !PAID_STATUSES.contains(paymentStatus)) {
-                log.error("결제 미완료 - status: {}", paymentStatus);
-                dbPayment.failPayment();
-                throw new PaymentException(ErrorCode.PAYMENT_NOT_COMPLETED);
-            }
+            return paymentInnerService.completeVerifySuccess(context, request.getPaymentId());
 
-            // 7. 결제 성공 처리
-            dbPayment.completePayment(request.getPaymentId());
-            log.info("결제 성공 처리 완료 - paymentId: {}", dbPayment.getId());
-
-            // 8. 주문 상태를 PREPARING(조리 준비)로 변경
-            Order order = dbPayment.getOrder();
-            order.updateStatus(OrderStatus.PREPARING);
-            log.info("주문 상태 변경 완료 - orderId: {}, status: PREPARING", order.getId());
-
-            // 9. 응답 생성
-            return PaymentVerifyResponse.success(
-                    dbPayment.getId(),
-                    order.getId(),
-                    request.getPaymentId(),
-                    finalAmount,
-                    OrderStatus.PREPARING.getDescription()
-            );
+        } catch (PaymentException e) {
+            paymentInnerService.completeVerifyFailure(context.dbPaymentId(), e.isRetryable());
+            throw e;
 
         } catch (IOException e) {
             log.error("PortOne v2 API 응답 파싱 중 예외 발생", e);
-            dbPayment.failPayment();
-            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "API 응답 처리 중 오류가 발생했습니다.");
+            paymentInnerService.completeVerifyFailure(context.dbPaymentId(), true);
+            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "API 응답 처리 중 오류가 발생했습니다.", true);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("PortOne v2 API 호출 중 인터럽트 발생", e);
-            dbPayment.failPayment();
-            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "API 통신 중 인터럽트가 발생했습니다.");
+            paymentInnerService.completeVerifyFailure(context.dbPaymentId(), true);
+            throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "API 통신 중 인터럽트가 발생했습니다.", true);
         }
     }
 
@@ -256,9 +211,11 @@ public class PaymentService {
         }
 
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            boolean retryable = response.statusCode() == 429 || response.statusCode() >= 500;
             throw new PaymentException(
                     ErrorCode.PORTONE_API_ERROR,
-                    "PortOne v2 결제 조회 실패: HTTP " + response.statusCode()
+                    "PortOne v2 결제 조회 실패: HTTP " + response.statusCode(),
+                    retryable
             );
         }
 
@@ -298,6 +255,30 @@ public class PaymentService {
         }
 
         throw new PaymentException(ErrorCode.PORTONE_API_ERROR, "결제 금액 포맷이 올바르지 않습니다.");
+    }
+
+    private void validatePortOnePaymentId(String dbPaymentId, JsonNode portOnePayment) {
+        // PortOne v2 응답의 id 필드 = 결제창에 넘긴 paymentId = dbPaymentId
+        String responsePaymentId = extractText(portOnePayment, "id", "paymentId");
+        if (responsePaymentId != null && !dbPaymentId.equals(responsePaymentId)) {
+            log.error("paymentId 불일치 - 요청: {}, 응답: {}", dbPaymentId, responsePaymentId);
+            throw new PaymentException(ErrorCode.PAYMENT_INFO_MISMATCH);
+        }
+    }
+
+    private void validatePaidAmount(BigDecimal expectedAmount, BigDecimal paidAmount) {
+        if (paidAmount.compareTo(expectedAmount) != 0) {
+            log.error("결제 금액 불일치 - PortOne: {}, DB: {}", paidAmount, expectedAmount);
+            throw new PaymentException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+    }
+
+    private void validatePaymentStatus(JsonNode portOnePayment) {
+        String paymentStatus = extractText(portOnePayment, "status");
+        if (paymentStatus == null || !PAID_STATUSES.contains(paymentStatus)) {
+            log.error("결제 미완료 - status: {}", paymentStatus);
+            throw new PaymentException(ErrorCode.PAYMENT_NOT_COMPLETED);
+        }
     }
 
     /**
