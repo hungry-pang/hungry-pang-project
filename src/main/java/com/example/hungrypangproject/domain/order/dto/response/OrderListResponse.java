@@ -28,9 +28,19 @@ public class OrderListResponse {
     }
     public static OrderListResponse from(Order order) {
         List<OrderItem> orderItems = order.getOrderItems();
+        if (orderItems.isEmpty()) {
+            return new OrderListResponse(
+                    order.getId(),
+                    order.getStore().getStoreName(),
+                    "주문 항목 없음",
+                    order.getTotalPrice(),
+                    order.getOrderStatus(),
+                    order.getOrderAt()
+            );
+        }
         String menus = orderItems.get(0).getName();
-        if(orderItems.size() > 1) {
-            menus += "외" + (orderItems.size() - 1)+ "건";
+        if (orderItems.size() > 1) {
+            menus += " 외 " + (orderItems.size() - 1) + "건";
         }
         return new OrderListResponse(
                 order.getId(),
