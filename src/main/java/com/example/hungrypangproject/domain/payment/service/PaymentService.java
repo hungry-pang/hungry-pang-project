@@ -6,6 +6,7 @@ import com.example.hungrypangproject.domain.order.entity.OrderStatus;
 import com.example.hungrypangproject.domain.order.repository.OrderRepository;
 import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareRequest;
 import com.example.hungrypangproject.domain.payment.dto.PaymentPrepareResponse;
+import com.example.hungrypangproject.domain.payment.dto.PaymentDetailResponse;
 import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyRequest;
 import com.example.hungrypangproject.domain.payment.dto.PaymentVerifyResponse;
 import com.example.hungrypangproject.domain.payment.dto.WebhookRequest;
@@ -53,6 +54,17 @@ public class PaymentService {
 
     @Value("${portone.api.v2-secret:${portone.api.secret}}")
     private String portOneV2Secret;
+
+    /**
+     * 결제 상세조회
+     */
+    @Transactional(readOnly = true)
+    public PaymentDetailResponse getPaymentDetail(Long memberId, String dbPaymentId) {
+        Payment payment = paymentRepository.findByDbPaymentIdAndOrderMemberMemberId(dbPaymentId, memberId)
+                .orElseThrow(() -> new PaymentException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        return PaymentDetailResponse.from(payment);
+    }
 
     /**
      * 결제 준비
@@ -108,13 +120,7 @@ public class PaymentService {
         String dbPaymentId = "PAY_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
 
         // 5. Payment 엔티티 생성 및 저장
-        Payment payment = Payment.builder()
-                .dbPaymentId(dbPaymentId)
-                .order(order)
-                .totalAmount(request.getAmount())
-                .pointsToUse(pointsToUse)
-                .status(PaymentStatus.PENDING)
-                .build();
+        Payment payment = Payment.create(dbPaymentId, order, request.getAmount(), pointsToUse);
 
         paymentRepository.save(payment);
         log.info("결제 준비 완료 - dbPaymentId: {}", dbPaymentId);

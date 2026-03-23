@@ -3,7 +3,6 @@ package com.example.hungrypangproject.domain.payment.entity;
 import com.example.hungrypangproject.domain.order.entity.Order;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -41,14 +40,15 @@ public class Payment {
     @Column(name = "status", length = 20, nullable = false)
     private PaymentStatus status;
 
-    @Builder
-    public Payment(String dbPaymentId, String paymentId, Order order, BigDecimal totalAmount, BigDecimal pointsToUse, PaymentStatus status) {
-        this.dbPaymentId = dbPaymentId;
-        this.paymentId = paymentId;
-        this.order = order;
-        this.totalAmount = totalAmount;
-        this.pointsToUse = pointsToUse;
-        this.status = status != null ? status : PaymentStatus.PENDING;
+    // 결제 준비 시 생성
+    public static Payment create(String dbPaymentId, Order order, BigDecimal totalAmount, BigDecimal pointsToUse) {
+        Payment payment = new Payment();
+        payment.dbPaymentId = dbPaymentId;
+        payment.order = order;
+        payment.totalAmount = totalAmount;
+        payment.pointsToUse = pointsToUse;
+        payment.status = PaymentStatus.PENDING;
+        return payment;
     }
 
     // 상태 변경 메서드
@@ -104,5 +104,19 @@ public class Payment {
 
     public boolean isPaid() {
         return this.status == PaymentStatus.PAID;
+    }
+
+    // 동시성 제어용 상태 전이 메서드
+    public void startVerification() {
+        this.status = PaymentStatus.VERIFYING;
+    }
+    public boolean isVerifying() {
+        return this.status == PaymentStatus.VERIFYING;
+    }
+    public void startRefund() {
+        this.status = PaymentStatus.REFUNDING;
+    }
+    public boolean isRefunding() {
+        return this.status == PaymentStatus.REFUNDING;
     }
 }

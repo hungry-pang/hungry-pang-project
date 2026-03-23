@@ -3,6 +3,8 @@ package com.example.hungrypangproject.domain.refund.service;
 import com.example.hungrypangproject.common.exception.ErrorCode;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllRequest;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllResponse;
+import com.example.hungrypangproject.domain.refund.dto.RefundDetailResponse;
+import com.example.hungrypangproject.domain.refund.entity.Refund;
 import com.example.hungrypangproject.domain.refund.exception.RefundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -64,7 +66,22 @@ public class RefundService {
         }
     }
 
-    private String requestPortOneRefund(String dbPaymentId, String reason) throws IOException, InterruptedException {
+    @Transactional(readOnly = true)
+    public RefundDetailResponse getRefundDetail(Long memberId, Long refundId) {
+        Refund refund = refundRepository.findById(refundId)
+                .orElseThrow(() -> new RefundException(ErrorCode.REFUND_NOT_FOUND));
+
+        Payment payment = paymentRepository.findById(refund.getPaymentId())
+                .orElseThrow(() -> new RefundException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        if (!payment.getOrder().getMember().getMemberId().equals(memberId)) {
+            throw new RefundException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+        }
+
+        return RefundDetailResponse.of(refund, payment.getDbPaymentId(), payment.getOrder().getId());
+    }
+
+    private String requestPortOneRefund(Payment payment, RefundAllRequest refundAllRequest) {
         // PortOne v2 환불 API: POST /payments/{paymentId}/cancel
         // paymentId = 결제창에 넘긴 paymentId = dbPaymentId
         if (dbPaymentId == null || dbPaymentId.isBlank()) {
