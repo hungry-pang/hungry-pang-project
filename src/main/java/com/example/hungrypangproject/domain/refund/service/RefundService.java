@@ -1,41 +1,34 @@
 package com.example.hungrypangproject.domain.refund.service;
 
 import com.example.hungrypangproject.common.exception.ErrorCode;
-import com.example.hungrypangproject.domain.order.service.OrderService;
-import com.example.hungrypangproject.domain.payment.entity.Payment;
-import com.example.hungrypangproject.domain.payment.repository.PaymentRepository;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllRequest;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllResponse;
+import com.example.hungrypangproject.domain.refund.dto.RefundDetailResponse;
 import com.example.hungrypangproject.domain.refund.entity.Refund;
 import com.example.hungrypangproject.domain.refund.exception.RefundException;
-import com.example.hungrypangproject.domain.refund.repository.RefundRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class RefundService {
 
-    private final RefundRepository refundRepository;
-    private final PaymentRepository paymentRepository;
-    private final OrderService orderService;
-    private final RefundHistoryService refundHistoryService;
     private final ObjectMapper objectMapper;
+    private final RefundTxService refundTxService;
 
     @Value("${portone.api.base-url:https://api.portone.io}")
     private String portOneBaseUrl;
@@ -43,143 +36,109 @@ public class RefundService {
     @Value("${portone.api.v2-secret:${portone.api.secret}}")
     private String portOneV2Secret;
 
-    @Transactional
     public RefundAllResponse refundAll(Long memberId, String dbPaymentId, @Valid RefundAllRequest refundAllRequest) {
-        // 1) 결제 조회 및 환불 가능 여부 검증
-        Payment payment = paymentRepository.findByDbPaymentIdWithLock(dbPaymentId)
-                .orElseThrow(() -> new RefundException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        // 본인 결제인지 검증
-        if (!payment.getOrder().getMember().getMemberId().equals(memberId)) {
-            throw new RefundException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
-        }
-
-        // 요청 주문 ID와 결제의 주문 ID가 일치하는지 검증
-        if (!payment.getOrder().getId().equals(refundAllRequest.getOrderId())) {
-            throw new RefundException(ErrorCode.PAYMENT_INFO_MISMATCH);
-        }
-
-        validateRefundable(payment);
-
-        // 2) 환불 요청 이력 저장
-        String refundGroupId = "rf-grp" + UUID.randomUUID();
-        String reason = refundAllRequest.getReason();
-        refundHistoryService.saveRequestHistory(payment.getId(), payment.getTotalAmount(), reason, refundGroupId);
+        RefundContext context = refundTxService.reserveRefund(memberId, dbPaymentId, refundAllRequest);
 
         String portOneRefundId = null;
 
         try {
-            // 3) PortOne 환불 요청
-            portOneRefundId = requestPortOneRefund(payment, refundAllRequest);
+            // 트랜잭션 밖에서 PortOne 환불 요청
+            portOneRefundId = requestPortOneRefund(context.dbPaymentId(), context.reason());
 
-            // 4) 환불 완료 처리
-            completeRefund(payment, reason, portOneRefundId, refundGroupId);
+            refundTxService.completeRefundSuccess(context, portOneRefundId);
 
-            return new RefundAllResponse(payment.getOrder().getId(), payment.getOrder().getOrderNum());
+            return new RefundAllResponse(context.orderId(), context.orderNum());
         } catch (RefundException e) {
-            saveFailHistorySafely(payment, reason, portOneRefundId, refundGroupId, e.getMessage());
+            saveFailHistorySafely(context, portOneRefundId, e.getMessage(), e.isRetryable());
             throw e;
+        } catch (IOException e) {
+            log.error("PortOne v2 환불 응답 파싱 중 예외 발생", e);
+            saveFailHistorySafely(context, portOneRefundId, "API 응답 처리 중 오류가 발생했습니다.", true);
+            throw new RefundException(ErrorCode.PORTONE_API_ERROR, "API 응답 처리 중 오류가 발생했습니다.", true);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("PortOne v2 환불 호출 중 인터럽트 발생", e);
+            saveFailHistorySafely(context, portOneRefundId, "API 통신 중 인터럽트가 발생했습니다.", true);
+            throw new RefundException(ErrorCode.PORTONE_API_ERROR, "API 통신 중 인터럽트가 발생했습니다.", true);
         } catch (Exception e) {
-            saveFailHistorySafely(payment, reason, portOneRefundId, refundGroupId, e.getMessage());
-            throw new RefundException(ErrorCode.PORTONE_API_ERROR, e.getMessage());
+            saveFailHistorySafely(context, portOneRefundId, e.getMessage(), true);
+            throw new RefundException(ErrorCode.PORTONE_API_ERROR, e.getMessage(), true);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public RefundDetailResponse getRefundDetail(Long memberId, Long refundId) {
+        Refund refund = refundRepository.findById(refundId)
+                .orElseThrow(() -> new RefundException(ErrorCode.REFUND_NOT_FOUND));
+
+        Payment payment = paymentRepository.findById(refund.getPaymentId())
+                .orElseThrow(() -> new RefundException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        if (!payment.getOrder().getMember().getMemberId().equals(memberId)) {
+            throw new RefundException(ErrorCode.ORDER_CANCEL_FORBIDDEN);
+        }
+
+        return RefundDetailResponse.of(refund, payment.getDbPaymentId(), payment.getOrder().getId());
     }
 
     private String requestPortOneRefund(Payment payment, RefundAllRequest refundAllRequest) {
         // PortOne v2 환불 API: POST /payments/{paymentId}/cancel
         // paymentId = 결제창에 넘긴 paymentId = dbPaymentId
-        if (payment.getDbPaymentId() == null || payment.getDbPaymentId().isBlank()) {
+        if (dbPaymentId == null || dbPaymentId.isBlank()) {
             throw new RefundException(ErrorCode.PAYMENT_NOT_FOUND);
         }
 
-        try {
-            String requestUrl = portOneBaseUrl + "/payments/" + payment.getDbPaymentId() + "/cancel";
-            String reason = (refundAllRequest.getReason() != null && !refundAllRequest.getReason().isBlank())
-                    ? refundAllRequest.getReason() : "고객 요청";
+        String requestUrl = portOneBaseUrl + "/payments/" + dbPaymentId + "/cancel";
+        String refundReason = (reason != null && !reason.isBlank()) ? reason : "고객 요청";
 
-            // 요청 바디 생성
-            String requestBody = objectMapper.writeValueAsString(Map.of("reason", reason));
+        // 요청 바디 생성
+        String requestBody = objectMapper.writeValueAsString(Map.of("reason", refundReason));
 
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(requestUrl))
-                    .timeout(Duration.ofSeconds(10))
-                    .header("Authorization", "PortOne " + portOneV2Secret)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .build();
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(requestUrl))
+                .timeout(Duration.ofSeconds(10))
+                .header("Authorization", "PortOne " + portOneV2Secret)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
 
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                JsonNode errorNode = objectMapper.readTree(response.body());
-                String message = errorNode.has("message") ? errorNode.get("message").asText() : "환불 요청 실패";
-                throw new RefundException(ErrorCode.PORTONE_API_ERROR, message);
-            }
-
-            // cancellationId 추출 (환불 고유 ID)
-            JsonNode responseNode = objectMapper.readTree(response.body());
-            if (responseNode.has("cancellationId") && !responseNode.get("cancellationId").isNull()) {
-                return responseNode.get("cancellationId").asText();
-            }
-
-            // cancellationId가 없으면 dbPaymentId + "_cancel" 을 대체값으로 사용
-            return payment.getDbPaymentId() + "_cancel";
-
-        } catch (Exception e) {
-            throw new RefundException(ErrorCode.PORTONE_API_ERROR, e.getMessage());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw buildRefundException(response);
         }
-    }
 
-    // 환불 가능 상태 검증
-    private void validateRefundable(Payment payment) {
-
-       if (payment.getOrder().isCancelled() || payment.getOrder().isRefunded()) {
-            throw new RefundException(ErrorCode.ORDER_ALREADY_CANCELLED);
+        // cancellationId 추출 (환불 고유 ID)
+        JsonNode responseNode = objectMapper.readTree(response.body());
+        if (responseNode.has("cancellationId") && !responseNode.get("cancellationId").isNull()) {
+            return responseNode.get("cancellationId").asText();
         }
-       if (payment.getOrder().isCompleted()) {
-           throw new RefundException(ErrorCode.ORDER_ALREADY_COMPLETED);
-       }
-       if (!payment.getOrder().isRefunable()) {
-           throw new RefundException(ErrorCode.ORDER_STATUS_INVALID);
-       }
-       if (!payment.isPaid()) {
-           throw new RefundException(ErrorCode.ORDER_STATUS_INVALID);
-       }
+
+        // cancellationId가 없으면 dbPaymentId + "_cancel" 을 대체값으로 사용
+        return dbPaymentId + "_cancel";
     }
 
-    // 환불 완료 로직
-    private void completeRefund(Payment payment, String reason, String portOneRefundId, String refundGroupId) {
-        Refund completedRefund = Refund.createCompleted(
-                payment.getId(),
-                payment.getTotalAmount(),
-                reason,
-                portOneRefundId,
-                refundGroupId
-        );
+    private RefundException buildRefundException(HttpResponse<String> response) throws IOException {
+        String message = "환불 요청 실패";
 
-        // 환불 완료 이력 저장
-        refundRepository.save(completedRefund);
+        if (response.body() != null && !response.body().isBlank()) {
+            JsonNode errorNode = objectMapper.readTree(response.body());
+            if (errorNode.has("message") && !errorNode.get("message").isNull()) {
+                message = errorNode.get("message").asText();
+            }
+        }
 
-        // 결제 및 주문 상태 변경
-        payment.refund();
-        orderService.refundOrder(payment.getOrder().getMember().getMemberId(), payment.getOrder().getId());
+        boolean retryable = response.statusCode() == 429 || response.statusCode() >= 500;
+        return new RefundException(ErrorCode.PORTONE_API_ERROR, message, retryable);
     }
 
-    private void saveFailHistorySafely(Payment payment, String reason, String portOneRefundId, String refundGroupId, String failureMessage) {
-        String failReason = reason + " | 실패원인: " + failureMessage;
-
+    private void saveFailHistorySafely(RefundContext context, String portOneRefundId, String failureMessage, boolean retryable) {
         try {
-            refundHistoryService.saveFailHistory(
-                    payment.getId(),
-                    payment.getTotalAmount(),
-                    failReason,
-                    portOneRefundId,
-                    refundGroupId
-            );
+            refundTxService.completeRefundFailure(context, portOneRefundId, failureMessage, retryable);
         } catch (Exception historyException) {
             log.error("환불 실패 이력 저장 중 예외 발생 - paymentId: {}, refundGroupId: {}",
-                    payment.getId(), refundGroupId, historyException);
+                    context.paymentId(), context.refundGroupId(), historyException);
         }
     }
 }

@@ -56,6 +56,11 @@ public class Payment {
         this.status = status;
     }
 
+    // 결제 검증 시작
+    public void startVerification() {
+        this.status = PaymentStatus.VERIFYING;
+    }
+
     public void completePayment(String paymentId) {
         this.paymentId = paymentId;
         this.status = PaymentStatus.PAID;
@@ -65,14 +70,38 @@ public class Payment {
         this.status = PaymentStatus.FAIL;
     }
 
+    // 일시적 장애 시 결제 대기 상태로 복구
+    public void restorePending() {
+        this.status = PaymentStatus.PENDING;
+    }
+
+    // 환불 처리 시작
+    public void startRefund() {
+        this.status = PaymentStatus.REFUNDING;
+    }
+
     public void refund() {
         this.status = PaymentStatus.REFUND;
+    }
+
+    // 환불 실패 시 결제 완료 상태로 복구
+    public void restorePaid() {
+        this.status = PaymentStatus.PAID;
     }
 
     // 환불 시 결제 상태 검증
     public boolean isRefund() {
         return this.status == PaymentStatus.REFUND;
     }
+
+    public boolean isRefunding() {
+        return this.status == PaymentStatus.REFUNDING;
+    }
+
+    public boolean isVerifying() {
+        return this.status == PaymentStatus.VERIFYING;
+    }
+
     public boolean isPaid() {
         return this.status == PaymentStatus.PAID;
     }

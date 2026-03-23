@@ -22,6 +22,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // dbPaymentId로 결제 조회
     Optional<Payment> findByDbPaymentId(String dbPaymentId);
 
+    // 상세조회용: 회원 본인 결제만 조회
+    Optional<Payment> findByDbPaymentIdAndOrderMemberMemberId(String dbPaymentId, Long memberId);
+
     // 비관적 락 조회 메서드
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({@QueryHint(name = "javax.persistence.lock.timeout", value = "3000")}) // 3초 대기 후 타임아웃

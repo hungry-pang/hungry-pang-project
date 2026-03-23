@@ -1,8 +1,10 @@
 package com.example.hungrypangproject.domain.refund.controller;
 
+import com.example.hungrypangproject.common.dto.ApiResponse;
 import com.example.hungrypangproject.domain.member.entity.MemberUserDetails;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllRequest;
 import com.example.hungrypangproject.domain.refund.dto.RefundAllResponse;
+import com.example.hungrypangproject.domain.refund.dto.RefundDetailResponse;
 import com.example.hungrypangproject.domain.refund.service.RefundService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +21,18 @@ public class RefundController {
 
     private final RefundService refundService;
 
+    @GetMapping("/{refundId}")
+    public ResponseEntity<ApiResponse<RefundDetailResponse>> getRefundDetail(
+            @AuthenticationPrincipal MemberUserDetails userDetails,
+            @PathVariable Long refundId
+    ) {
+        Long memberId = userDetails.getMember().getMemberId();
+        RefundDetailResponse response = refundService.getRefundDetail(memberId, refundId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
     @PostMapping("/{dbPaymentId}")
-    public ResponseEntity<RefundAllResponse> refundAll(
+    public ResponseEntity<ApiResponse<RefundAllResponse>> refundAll(
             @AuthenticationPrincipal MemberUserDetails userDetails,
             @PathVariable String dbPaymentId,
             @Valid @RequestBody RefundAllRequest refundAllRequest
@@ -29,6 +41,6 @@ public class RefundController {
 
         Long memberId = userDetails.getMember().getMemberId();
         RefundAllResponse response = refundService.refundAll(memberId, dbPaymentId, refundAllRequest);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

@@ -23,10 +23,10 @@ public class PointService {
 
     /*
      * 1. 적립 포인트 계산 : 실 결제 금액의 5% 적립
-     * 2. 포인트 사용 및 로그 생성
-     * 3. 포인트 적립 및 로그 생성
+     * 2. 포인트 사용 : 로그 표시
+     * 3. 포인트 적립 : 로그 표시
      * 4. 배달 완료 : 포인트 확정 업데이트
-     * 주문 서비스와 동시에 롤백이 되지 않게 Transactional 삭제
+     * calculateEarnedPoints : 주문 서비스와 동시에 롤백이 되지 않게 Transactional 삭제
      */
 
     private final PointRepository pointRepository;
@@ -40,9 +40,8 @@ public class PointService {
 
     @Transactional
     public void usedPoint(Member member, Order order, BigDecimal useAmount) {
-
         // 락 걸고 회원 정보 다시 가져오기
-        Member lockdMember = memberRepository.findByaMemberIdForLock(member.getMemberId())
+        Member lockdMember = memberRepository.findByMemberIdForLock(member.getMemberId())
                 .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
 
         // 주문으로 포인트 차감 로그 존재 확인
@@ -73,14 +72,13 @@ public class PointService {
                 BigDecimal.ZERO,
                 useAmount,
                 PointEnum.HOLDING,
-                member,
+                lockdMember,
                 order
         );
         pointRepository.save(useLog);
    }
 
     public void reserveEarnPoint(Member member, Order order, BigDecimal earnAmount) {
-
         // 배달 완료 전 홀딩 상태 포인트 확인
         Point earnLog = Point.register(
                 member.getTotalPoint(),
@@ -94,8 +92,7 @@ public class PointService {
    }
 
     public void completePoint(Order order) {
-
-        // 적립 홀딩 상태 확인
+       // 적립 홀딩 상태 확인
        Point point = pointRepository.findFirstByOrderAndStatusOrderByCreatedAtDesc(order, PointEnum.HOLDING)
                .orElseThrow(() -> new ServiceException(ErrorCode.POINT_NOT_HOLDING));
 
