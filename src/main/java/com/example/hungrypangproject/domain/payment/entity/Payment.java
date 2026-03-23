@@ -94,29 +94,15 @@ public class Payment {
         return this.status == PaymentStatus.REFUND;
     }
 
-    public boolean isRefunding() {
-        return this.status == PaymentStatus.REFUNDING;
-    }
-
-    public boolean isVerifying() {
-        return this.status == PaymentStatus.VERIFYING;
-    }
-
     public boolean isPaid() {
         return this.status == PaymentStatus.PAID;
     }
 
-    // 동시성 제어용 상태 전이 메서드
-    public void startVerification() {
-        this.status = PaymentStatus.VERIFYING;
-    }
-    public boolean isVerifying() {
-        return this.status == PaymentStatus.VERIFYING;
-    }
-    public void startRefund() {
-        this.status = PaymentStatus.REFUNDING;
-    }
     public boolean isRefunding() {
         return this.status == PaymentStatus.REFUNDING;
+    }
+
+    public boolean isVerifying() {
+        return this.status == PaymentStatus.VERIFYING;
     }
 }
