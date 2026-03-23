@@ -46,14 +46,9 @@ public class WebhookService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Long saveWebhookRecord(WebhookRequest request) {
-        Webhook webhook = Webhook.builder()
-                .webhookId(request.getImp_uid())
-                .paymentId(request.getMerchant_uid())
-                .eventStatus(request.getStatus())
-                .status(WebhookStatus.RECEIVED)
-                .build();
+        Webhook webhook = Webhook.create(request.getImp_uid(), request.getMerchant_uid(), request.getStatus());
 
-                        Webhook savedWebhook = webhookRepository.save(webhook);
+        Webhook savedWebhook = webhookRepository.save(webhook);
         log.info("웹훅 기록 저장 완료 - webhookId: {}, impUid: {}, status: {}",
                 savedWebhook.getId(), request.getImp_uid(), request.getStatus());
 

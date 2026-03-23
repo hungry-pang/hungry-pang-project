@@ -2,7 +2,6 @@ package com.example.hungrypangproject.domain.payment.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -33,13 +32,15 @@ public class Webhook {
     @Column(name = "received_at", nullable = false)
     private LocalDateTime receivedAt;
 
-    @Builder
-    public Webhook(String webhookId, String paymentId, String eventStatus, WebhookStatus status, LocalDateTime receivedAt) {
-        this.webhookId = webhookId;
-        this.paymentId = paymentId;
-        this.eventStatus = eventStatus;
-        this.status = status != null ? status : WebhookStatus.RECEIVED;
-        this.receivedAt = receivedAt != null ? receivedAt : LocalDateTime.now();
+    // 웹훅 수신 시 생성
+    public static Webhook create(String webhookId, String paymentId, String eventStatus) {
+        Webhook webhook = new Webhook();
+        webhook.webhookId = webhookId;
+        webhook.paymentId = paymentId;
+        webhook.eventStatus = eventStatus;
+        webhook.status = WebhookStatus.RECEIVED;
+        webhook.receivedAt = LocalDateTime.now();
+        return webhook;
     }
 
     // Webhook 처리 완료
