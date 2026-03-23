@@ -72,7 +72,7 @@ public class OrderService {
 
         List<Long> menuIds = new ArrayList<>(menuIdToStock.keySet());
         Collections.sort(menuIds);
-        // key값만 뽑아내서 id목록으로 한번에 조회, 쿼리가 한번만 나감4
+
         List<Menu> menus = menuRepository.findAllByIdInAndStoreId(menuIds, request.getStoreId());
 
 
