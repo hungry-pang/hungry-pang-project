@@ -55,6 +55,7 @@ public class PointServiceConcurrencyTest {
                 .storeName("배고팡")
                 .status(StoreStatus.OPEN)
                 .seller(member)
+                .totalReviewCount(1000L)
                 .build());
 
         Order order = orderRepository.save(Order.builder()

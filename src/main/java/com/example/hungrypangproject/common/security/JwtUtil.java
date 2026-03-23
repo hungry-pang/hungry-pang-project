@@ -18,8 +18,8 @@ import java.util.Date;
 public class JwtUtil {
 
     public static final String BEARER_PREFIX = "Bearer ";
-    private static final long ACCESS_TOKEN_TIME = 60 * 60 * 1000L; // token 발급 시간 60분
-    private static final long REFRESH_TOKEN_TIME = 14 * 24 * 60 * 60 * 1000L; // Refresh token 발급 2주
+    private static final long ACCESS_TOKEN_TIME = 60 * 1000L; // token 발급 시간 60분
+    private static final long REFRESH_TOKEN_TIME = 3 * 60 * 1000L; // Refresh token 발급 2주
 
     private SecretKey secretKey;
     private JwtParser jwtparser;

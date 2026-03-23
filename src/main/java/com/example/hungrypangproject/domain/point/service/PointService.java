@@ -41,7 +41,7 @@ public class PointService {
     @Transactional
     public void usedPoint(Member member, Order order, BigDecimal useAmount) {
         // 락 걸고 회원 정보 다시 가져오기
-        Member lockdMember = memberRepository.findByaMemberIdForLock(member.getMemberId())
+        Member lockdMember = memberRepository.findByMemberIdForLock(member.getMemberId())
                 .orElseThrow(() -> new ServiceException(ErrorCode.MEMBER_NOT_FOUND));
 
         // 주문으로 포인트 차감 로그 존재 확인
@@ -72,7 +72,7 @@ public class PointService {
                 BigDecimal.ZERO,
                 useAmount,
                 PointEnum.HOLDING,
-                member,
+                lockdMember,
                 order
         );
         pointRepository.save(useLog);
