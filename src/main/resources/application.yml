@@ -1,0 +1,36 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  application:
+    name: hungry-pang-project
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/test
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  cache:
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=10s
+
+portone:
+  api:
+    key: ${PORTONE_API_KEY:test_key}
+    secret: ${PORTONE_API_SECRET:test_secret}
+    base-url: ${PORTONE_API_BASE_URL:https://api.portone.io}
+    v2-secret: ${PORTONE_V2_API_SECRET:${PORTONE_API_SECRET:test_secret}}
+
+jwt:
+  secret:
+    key: ZGtjbmxka24xMzVkbGtuY2tkbmZqNDM5NzNkbGtuY2syZGxja25kazkzOGVuZjJsa2Zua2RuY2oyMjM0MmxrZG5sd2tyb20=

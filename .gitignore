@@ -35,3 +35,25 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# properties
+src/main/resources/application.properties
+src/main/resources/application*.properties
+
+# yml (로컬/프로덕션 설정 파일)
+src/main/resources/application-local.yml
+src/main/resources/application-prod.yml
+src/main/resources/application-dev.yml
+src/main/resources/application-test.yml
+
+# data
+src/main/resources/data.sql
+
+# test data
+test-data.sql
+reset-database.sql
+bootrun.log
+
+
+# Data Initializer
+src/main/java/com/example/hungrypangproject/DataInitializer.java
