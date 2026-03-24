@@ -1,6 +1,9 @@
 package com.example.hungrypangproject.domain.member.service;
 
+import com.example.hungrypangproject.common.exception.ErrorCode;
+import com.example.hungrypangproject.common.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +19,11 @@ public class MemberCacheService {
     // RefreshToken 캐시 저장
     public void saveRefreshToken(String email, String refreshToken, Long durationMillis) {
         String key = CACHE_REFRESH_TOKEN_PREFIX + email;
-        redisTemplate.opsForValue().set(key, refreshToken, Duration.ofMillis(durationMillis));
+        try {
+            redisTemplate.opsForValue().set(key, refreshToken, Duration.ofMillis(durationMillis));
+        } catch (RedisConnectionFailureException e) {
+            throw new ServiceException(ErrorCode.REDIS_CONNECTION_FAILED);
+        }
 
     }
         // RefreshToken 가져오기

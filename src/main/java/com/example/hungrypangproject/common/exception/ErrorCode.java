@@ -52,6 +52,7 @@ public enum ErrorCode {
     ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED,"AccessToken이 만료되었습니다. 재발급이 필요합니다,"),
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED,"RefreshToken 이 만료되었습니다. 다시 로그인 해주세요."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
+    REDIS_CONNECTION_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "인증 캐시 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요."),
 
     // Membership
     MEMBERSHIP_NOT_GRADE(HttpStatus.BAD_REQUEST, "기본 등급 정책이 존재하지 않습니다."),

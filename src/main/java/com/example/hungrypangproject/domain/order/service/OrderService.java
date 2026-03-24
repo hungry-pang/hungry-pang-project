@@ -10,7 +10,6 @@ import com.example.hungrypangproject.domain.menu.entity.MenuStatus;
 import com.example.hungrypangproject.domain.menu.exception.MenuException;
 import com.example.hungrypangproject.domain.menu.repository.MenuRepository;
 import com.example.hungrypangproject.domain.order.dto.request.CreateOrderRequest;
-import com.example.hungrypangproject.domain.order.dto.request.OrderItemRequest;
 import com.example.hungrypangproject.domain.order.dto.request.UpdateOrderStatusRequest;
 import com.example.hungrypangproject.domain.order.dto.response.CreateOrderResponse;
 import com.example.hungrypangproject.domain.order.dto.response.OrderDetailResponse;
@@ -54,6 +53,10 @@ public class OrderService {
     @CacheEvict(value = "userOrderCount", key = "#userId")
     @Transactional
     public CreateOrderResponse save(Long userId, CreateOrderRequest request) {
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new OrderException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
         Store store = storeRepository.findById(request.getStoreId()).orElseThrow(
                 () -> new StoreException(ErrorCode.STORE_NOT_FOUND)
         );
@@ -66,8 +69,19 @@ public class OrderService {
 
         Map<Long, Long> menuIdToStock = request.getItems().stream()
                 .collect(Collectors.toMap(
-                        OrderItemRequest::getMenuId, //key
-                        OrderItemRequest::getStock  //value
+                        item -> {
+                            if (item.getMenuId() == null) {
+                                throw new OrderException(ErrorCode.INVALID_INPUT_VALUE);
+                            }
+                            return item.getMenuId();
+                        },
+                        item -> {
+                            if (item.getStock() == null || item.getStock() <= 0) {
+                                throw new OrderException(ErrorCode.INVALID_INPUT_VALUE);
+                            }
+                            return item.getStock();
+                        },
+                        Long::sum
                 ));
 
         List<Long> menuIds = new ArrayList<>(menuIdToStock.keySet());

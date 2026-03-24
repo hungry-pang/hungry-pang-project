@@ -35,8 +35,12 @@ public class JwtFilter extends OncePerRequestFilter {
         if (requestURL.equals("/api/signup") ||
                 requestURL.equals("/api/login") ||
                 requestURL.equals("/api/refresh") ||
-                requestURL.equals("/api/test/orders")) {
-
+                requestURL.equals("/api/test/orders") ||
+                requestURL.equals("/error") ||
+                requestURL.startsWith("/demo/") ||
+                requestURL.endsWith(".html") ||
+                requestURL.endsWith(".css") ||
+                requestURL.endsWith(".js")) {
             filterChain.doFilter(request, response);
             return;
         }
