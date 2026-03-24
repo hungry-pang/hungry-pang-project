@@ -88,7 +88,7 @@ public class ReviewService {
     }
 
     // 리뷰 목록 조회(식당별)
-    @Cacheable(value = "storeReviews", key = "#storeId")
+    @Cacheable(value = "storeReviews", key = "'store:' + #storeId")
     @Transactional(readOnly = true)
     public List<ReviewResponse> getStoreReviews(Long storeId) {
 
