@@ -9,19 +9,20 @@ import java.math.BigDecimal;
 
 @Entity
 @Getter
-@Table(name = "userMembers")
+@Table(name = "user_members")
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserMembership extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_membership_id")
     private Long id;
 
     @Version
     private Long version;
 
-    @Column(nullable = false)
+    @Column(name = "total_amount", nullable = false)
     private BigDecimal totalPrice;
 
     @ManyToOne(fetch = FetchType.LAZY)

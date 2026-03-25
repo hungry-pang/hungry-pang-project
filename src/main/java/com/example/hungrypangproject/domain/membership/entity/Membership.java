@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 public class Membership extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "membership_id")
     private Long id;
 
     @Version

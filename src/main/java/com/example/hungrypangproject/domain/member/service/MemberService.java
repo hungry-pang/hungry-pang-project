@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -65,10 +66,15 @@ public class MemberService {
 
     @Transactional
     public LoginInfo login(LoginMemberRequest request) {
-        // authentication 객체 생성 및 인증 로직 진행
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        Authentication authentication;
+        try {
+            // authentication 객체 생성 및 인증 로직 진행
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+        } catch (AuthenticationException e) {
+            throw new ServiceException(ErrorCode.INVALID_PASSWORD);
+        }
 
         // authentication 객체에서 memberUserDetails 추출
         MemberUserDetails userDetails = (MemberUserDetails) authentication.getPrincipal();
