@@ -8,6 +8,7 @@ import com.example.hungrypangproject.domain.order.dto.response.CreateOrderRespon
 import com.example.hungrypangproject.domain.order.dto.response.OrderDetailResponse;
 import com.example.hungrypangproject.domain.order.dto.response.OrderListResponse;
 import com.example.hungrypangproject.domain.order.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ public class OrderController {
 
     @PostMapping
     public ApiResponse<CreateOrderResponse> createOrder(
-            @RequestBody CreateOrderRequest request,
+            @Valid @RequestBody CreateOrderRequest request,
             @AuthenticationPrincipal MemberUserDetails userDetails
     ) {
         Long userId = userDetails.getMember().getMemberId();

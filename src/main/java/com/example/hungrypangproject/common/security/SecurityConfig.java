@@ -40,7 +40,19 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/signup", "/api/login", "/api/refresh", "/api/test/**").permitAll()
+                        .requestMatchers(
+                                "/api/signup",
+                                "/api/login",
+                                "/api/refresh",
+                                "/api/test/**",
+                                "/error",
+                                "/demo/**",
+                                "/payment-test.html",
+                                "/payment-test-v2.html",
+                                "/full-demo.html",
+                                "/full-demo.css",
+                                "/full-demo.js"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .build();

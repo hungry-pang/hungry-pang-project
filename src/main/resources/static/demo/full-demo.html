@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HungryPang - 통합 시연 데모</title>
+    <link rel="stylesheet" href="full-demo.css">
+    <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🍔 HungryPang 통합 시연 데모</h1>
+        <p>음식 배달 플랫폼의 모든 기능을 체험해보세요</p>
+        <div class="auth-info" id="authInfo">
+            <strong>로그인:</strong> <span id="authEmail">미로그인</span> |
+            <strong>역할:</strong> <span id="authRole">-</span> |
+            <button class="btn btn-sm btn-secondary" onclick="logout()">로그아웃</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <nav class="sidebar">
+            <ul class="sidebar-menu">
+                <li><button onclick="showSection('config')" class="menu-btn active">⚙️ 설정</button></li>
+                <li><button onclick="showSection('auth')" class="menu-btn">🔐 회원인증</button></li>
+                <li><button onclick="showSection('member')" class="menu-btn">👤 회원정보</button></li>
+                <li><button onclick="showSection('store')" class="menu-btn">🏪 식당관리</button></li>
+                <li><button onclick="showSection('menu')" class="menu-btn">📋 메뉴관리</button></li>
+                <li><button onclick="showSection('order')" class="menu-btn">🛒 주문관리</button></li>
+                <li><button onclick="showSection('payment')" class="menu-btn">💳 결제처리</button></li>
+                <li><button onclick="showSection('refund')" class="menu-btn">↩️ 환불처리</button></li>
+                <li><button onclick="showSection('review')" class="menu-btn">⭐ 리뷰관리</button></li>
+                <li><button onclick="showSection('membership')" class="menu-btn">🎖️ 멤버십</button></li>
+                <li><button onclick="showSection('delivery')" class="menu-btn">🚚 배달</button></li>
+                <li><button onclick="showSection('coupon')" class="menu-btn">🎟️ 쿠폰</button></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <!-- 설정 섹션 -->
+            <section id="config" class="section active">
+                <h2>⚙️ 기본 설정</h2>
+                <div class="card">
+                    <h3>API 설정</h3>
+                    <div class="form-group">
+                        <label>API Base URL</label>
+                        <input type="text" id="api-base-url" value="http://localhost:8080">
+                    </div>
+                    <div class="form-group">
+                        <label>PortOne Store ID</label>
+                        <input type="text" id="portone-store-id" value="store-16a0ce9b-a70c-47c6-8275-9e11ad0dffe5" placeholder="store-...">
+                    </div>
+                    <div class="form-group">
+                        <label>PortOne Channel Key</label>
+                        <input type="text" id="portone-channel-key" value="channel-key-0afaf583-d5d5-4ff0-a35b-18994bb896ee" placeholder="channel-key-...">
+                    </div>
+                    <p class="hint">백엔드 서버 주소를 입력하고, PortOne 테스트용 Store ID / Channel Key를 확인하세요.</p>
+                </div>
+            </section>
+            <!-- 회원 인증 섹션 -->
+            <section id="auth" class="section">
+                <h2>🔐 회원 인증</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('auth', 'signup')">회원가입</button>
+                    <button class="tab-btn" onclick="showTab('auth', 'login')">로그인</button>
+                </div>
+                <div id="auth-signup" class="tab-content active">
+                    <div class="card">
+                        <h3>회원가입</h3>
+                        <div class="form-group">
+                            <label>이메일</label>
+                            <input type="email" id="signup-email" placeholder="example@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label>비밀번호</label>
+                            <input type="password" id="signup-password" placeholder="비밀번호">
+                        </div>
+                        <div class="form-group">
+                            <label>닉네임</label>
+                            <input type="text" id="signup-nickname" placeholder="홍길동">
+                        </div>
+                        <div class="form-group">
+                            <label>주소</label>
+                            <input type="text" id="signup-address" placeholder="서울시 강남구...">
+                        </div>
+                        <div class="form-group">
+                            <label>전화번호</label>
+                            <input type="tel" id="signup-phone" placeholder="010-1234-5678">
+                        </div>
+                        <div class="form-group">
+                            <label>역할</label>
+                            <select id="signup-role">
+                                <option value="ROLE_USER">일반 사용자</option>
+                                <option value="ROLE_SELLER">식당 주인</option>
+                                <option value="ROLE_RAIDER">라이더</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="signup()">회원가입</button>
+                    </div>
+                </div>
+                <div id="auth-login" class="tab-content">
+                    <div class="card">
+                        <h3>로그인</h3>
+                        <div class="form-group">
+                            <label>이메일</label>
+                            <input type="email" id="login-email" placeholder="example@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label>비밀번호</label>
+                            <input type="password" id="login-password" placeholder="비밀번호">
+                        </div>
+                        <button class="btn btn-primary" onclick="login()">로그인</button>
+                    </div>
+                </div>
+            </section>
+            <!-- 회원 정보 섹션 -->
+            <section id="member" class="section">
+                <h2>👤 회원 정보 관리</h2>
+                <div class="card">
+                    <h3>내 정보 조회</h3>
+                    <div class="form-group">
+                        <label>회원 ID</label>
+                        <input type="number" id="member-id" placeholder="1">
+                    </div>
+                    <button class="btn btn-primary" onclick="getMemberInfo()">조회</button>
+                </div>
+                <div class="card">
+                    <h3>회원 정보 수정</h3>
+                    <div class="form-group">
+                        <label>회원 ID</label>
+                        <input type="number" id="update-member-id" placeholder="1">
+                    </div>
+                    <div class="form-group">
+                        <label>닉네임</label>
+                        <input type="text" id="update-nickname" placeholder="새 닉네임">
+                    </div>
+                    <div class="form-group">
+                        <label>주소</label>
+                        <input type="text" id="update-address" placeholder="새 주소">
+                    </div>
+                    <div class="form-group">
+                        <label>전화번호</label>
+                        <input type="tel" id="update-phone" placeholder="010-1234-5678">
+                    </div>
+                    <button class="btn btn-success" onclick="updateMemberInfo()">수정</button>
+                </div>
+            </section>
+            <!-- 식당 관리 섹션 -->
+            <section id="store" class="section">
+                <h2>🏪 식당 관리</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('store', 'create')">식당 등록</button>
+                    <button class="tab-btn" onclick="showTab('store', 'list')">식당 목록</button>
+                    <button class="tab-btn" onclick="showTab('store', 'manage')">식당 관리</button>
+                </div>
+                <div id="store-create" class="tab-content active">
+                    <div class="card">
+                        <h3>식당 등록 (셀러 전용)</h3>
+                        <div class="form-group">
+                            <label>식당명</label>
+                            <input type="text" id="store-name" placeholder="맛있는 치킨집">
+                        </div>
+                        <div class="form-group">
+                            <label>배달비</label>
+                            <input type="number" id="store-delivery-fee" placeholder="3000">
+                        </div>
+                        <div class="form-group">
+                            <label>최소 주문 금액</label>
+                            <input type="number" id="store-minimum-order" placeholder="15000">
+                        </div>
+                        <button class="btn btn-primary" onclick="createStore()">식당 등록</button>
+                    </div>
+                </div>
+                <div id="store-list" class="tab-content">
+                    <div class="card">
+                        <h3>식당 검색</h3>
+                        <div class="form-group">
+                            <label>검색어 (선택)</label>
+                            <input type="text" id="store-search-keyword" placeholder="치킨...">
+                        </div>
+                        <button class="btn btn-primary" onclick="searchStores()">검색</button>
+                        <button class="btn btn-secondary" onclick="getAllStores()">전체 조회</button>
+                    </div>
+                    <div id="store-list-result"></div>
+                </div>
+                <div id="store-manage" class="tab-content">
+                    <div class="card">
+                        <h3>식당 정보 수정</h3>
+                        <div class="form-group">
+                            <label>식당 ID</label>
+                            <input type="number" id="update-store-id" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <label>식당명</label>
+                            <input type="text" id="update-store-name" placeholder="새 식당명">
+                        </div>
+                        <div class="form-group">
+                            <label>배달비</label>
+                            <input type="number" id="update-delivery-fee" placeholder="3500">
+                        </div>
+                        <div class="form-group">
+                            <label>최소 주문 금액</label>
+                            <input type="number" id="update-minimum-order" placeholder="12000">
+                        </div>
+                        <button class="btn btn-success" onclick="updateStore()">수정</button>
+                    </div>
+                    <div class="card">
+                        <h3>영업 상태 변경</h3>
+                        <div class="form-group">
+                            <label>식당 ID</label>
+                            <input type="number" id="status-store-id" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <label>영업 상태</label>
+                            <select id="store-status">
+                                <option value="OPEN">영업 중</option>
+                                <option value="CLOSED">영업 종료</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-info" onclick="updateStoreStatus()">상태 변경</button>
+                    </div>
+                    <div class="card">
+                        <h3>식당 삭제</h3>
+                        <div class="form-group">
+                            <label>식당 ID</label>
+                            <input type="number" id="delete-store-id" placeholder="1">
+                        </div>
+                        <button class="btn btn-danger" onclick="deleteStore()">삭제</button>
+                    </div>
+                </div>
+            </section>
+            <!-- 메뉴 관리 섹션 -->
+            <section id="menu" class="section">
+                <h2>📋 메뉴 관리</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('menu', 'create')">메뉴 등록</button>
+                    <button class="tab-btn" onclick="showTab('menu', 'list')">메뉴 목록</button>
+                    <button class="tab-btn" onclick="showTab('menu', 'manage')">메뉴 관리</button>
+                </div>
+                <div id="menu-create" class="tab-content active">
+                    <div class="card">
+                        <h3>메뉴 등록</h3>
+                        <div class="form-group">
+                            <label>식당 ID</label>
+                            <input type="number" id="menu-store-id" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <label>메뉴명</label>
+                            <input type="text" id="menu-name" placeholder="후라이드 치킨">
+                        </div>
+                        <div class="form-group">
+                            <label>가격</label>
+                            <input type="number" id="menu-price" placeholder="18000">
+                        </div>
+                        <div class="form-group">
+                            <label>재고</label>
+                            <input type="number" id="menu-stock" placeholder="100">
+                        </div>
+                        <button class="btn btn-primary" onclick="createMenu()">메뉴 등록</button>
+                    </div>
+                </div>
+                <div id="menu-list" class="tab-content">
+                    <div class="card">
+                        <h3>식당별 메뉴 조회</h3>
+                        <div class="form-group">
+                            <label>식당 ID</label>
+                            <input type="number" id="menu-list-store-id" placeholder="1">
+                        </div>
+                        <button class="btn btn-primary" onclick="getMenusByStore()">조회</button>
+                    </div>
+                    <div id="menu-list-result"></div>
+                </div>
+                <div id="menu-manage" class="tab-content">
+                    <div class="card">
+                        <h3>메뉴 수정</h3>
+                        <div class="form-group">
+                            <label>메뉴 ID</label>
+                            <input type="number" id="update-menu-id" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <label>메뉴명</label>
+                            <input type="text" id="update-menu-name" placeholder="새 메뉴명">
+                        </div>
+                        <div class="form-group">
+                            <label>가격</label>
+                            <input type="number" id="update-menu-price" placeholder="19000">
+                        </div>
+                        <div class="form-group">
+                            <label>재고</label>
+                            <input type="number" id="update-menu-stock" placeholder="50">
+                        </div>
+                        <button class="btn btn-success" onclick="updateMenu()">수정</button>
+                    </div>
+                    <div class="card">
+                        <h3>메뉴 삭제</h3>
+                        <div class="form-group">
+                            <label>메뉴 ID</label>
+                            <input type="number" id="delete-menu-id" placeholder="1">
+                        </div>
+                        <button class="btn btn-danger" onclick="deleteMenu()">삭제</button>
+                    </div>
+                </div>
+            </section>
+            <!-- 주문 관리 섹션 -->
+            <section id="order" class="section">
+                <h2>🛒 주문 관리</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('order', 'create')">주문 생성</button>
+                    <button class="tab-btn" onclick="showTab('order', 'list')">주문 내역</button>
+                    <button class="tab-btn" onclick="showTab('order', 'manage')">주문 관리</button>
+                </div>
+                <div id="order-create" class="tab-content active">
+                    <div class="card">
+                        <h3>주문 생성</h3>
+                        <div class="form-group">
+                            <label>식당 ID</label>
+                            <input type="number" id="order-store-id" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <label>배달 주소</label>
+                            <input type="text" id="order-address" placeholder="서울시 강남구...">
+                        </div>
+                        <div class="form-group">
+                            <label>포인트 사용</label>
+                            <input type="number" id="order-use-point" value="0">
+                        </div>
+
+                        <h4>주문 항목</h4>
+                        <div id="order-items-container">
+                            <div class="order-item-input">
+                                <input type="number" class="order-menu-id" placeholder="메뉴 ID" style="width: 45%;">
+                                <input type="number" class="order-quantity" placeholder="수량" style="width: 45%; margin-left: 2%;">
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="addOrderItem()">+ 항목 추가</button>
+                        <div class="form-group" style="margin-top: 12px;">
+                            <label>
+                                <input type="checkbox" id="order-auto-pay" checked style="width: auto; margin-right: 6px;">
+                                주문 생성 후 바로 PortOne 결제창 열기
+                            </label>
+                        </div>
+                        <button class="btn btn-primary" onclick="createOrder()">주문 생성</button>
+                    </div>
+                </div>
+                <div id="order-list" class="tab-content">
+                    <div class="card">
+                        <h3>내 주문 내역</h3>
+                        <button class="btn btn-primary" onclick="getMyOrders()">조회</button>
+                    </div>
+                    <div id="order-list-result"></div>
+                </div>
+                <div id="order-manage" class="tab-content">
+                    <div class="card">
+                        <h3>주문 상세 조회</h3>
+                        <div class="form-group">
+                            <label>주문 ID</label>
+                            <input type="number" id="order-detail-id" placeholder="1">
+                        </div>
+                        <button class="btn btn-primary" onclick="getOrderDetail()">상세 조회</button>
+                    </div>
+                    <div class="card">
+                        <h3>주문 상태 변경</h3>
+                        <div class="form-group">
+                            <label>주문 ID</label>
+                            <input type="number" id="order-status-id" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <label>주문 상태</label>
+                            <select id="order-status">
+                                <option value="WAITING">대기</option>
+                                <option value="PREPARING">준비 중</option>
+                                <option value="DELIVERING">배달 중</option>
+                                <option value="COMPLETED">완료</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-info" onclick="updateOrderStatus()">상태 변경</button>
+                    </div>
+                    <div class="card">
+                        <h3>주문 취소</h3>
+                        <div class="form-group">
+                            <label>주문 ID</label>
+                            <input type="number" id="cancel-order-id" placeholder="1">
+                        </div>
+                        <button class="btn btn-danger" onclick="cancelOrder()">주문 취소</button>
+                    </div>
+                </div>
+            </section>
+            <!-- 결제 처리 섹션 -->
+            <section id="payment" class="section">
+                <h2>💳 결제 처리</h2>
+                <div id="payment-flow-status" class="payment-flow-status status-info">
+                    결제 준비 전 상태입니다.
+                </div>
+                <div class="card">
+                    <h3>결제 준비</h3>
+                    <div class="form-group">
+                        <label>주문 ID</label>
+                        <input type="number" id="payment-order-id" placeholder="1">
+                    </div>
+                    <div class="form-group">
+                        <label>결제 금액</label>
+                        <input type="number" id="payment-amount" placeholder="20000">
+                    </div>
+                    <div class="form-group">
+                        <label>포인트 사용</label>
+                        <input type="number" id="payment-points" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>결제 수단</label>
+                        <select id="payment-method">
+                            <option value="EASY_PAY">간편결제(EASY_PAY)</option>
+                            <option value="CARD">신용카드(CARD)</option>
+                            <option value="TRANSFER">계좌이체(TRANSFER)</option>
+                            <option value="VIRTUAL_ACCOUNT">가상계좌(VIRTUAL_ACCOUNT)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>구매자명</label>
+                        <input type="text" id="payment-buyer-name" placeholder="홍길동">
+                    </div>
+                    <div class="form-group">
+                        <label>구매자 연락처</label>
+                        <input type="tel" id="payment-buyer-tel" placeholder="010-1234-5678">
+                    </div>
+                    <div class="form-group">
+                        <label>구매자 이메일</label>
+                        <input type="email" id="payment-buyer-email" placeholder="buyer@email.com">
+                    </div>
+                    <button class="btn btn-primary" onclick="preparePayment()">결제 준비</button>
+                </div>
+                <div class="card">
+                    <h3>결제 검증</h3>
+                    <div class="form-group">
+                        <label>PortOne 거래 ID (txId, v1의 impUid 역할)</label>
+                        <input type="text" id="payment-id" placeholder="자동 결제 성공 시 txId가 자동 입력됩니다.">
+                    </div>
+                    <div class="form-group">
+                        <label>DB 결제 ID (paymentId = 우리 서버 결제 ID)</label>
+                        <input type="text" id="db-payment-id" placeholder="ORDER_20250101_1234">
+                    </div>
+                    <button class="btn btn-success" onclick="verifyPayment()">결제 검증</button>
+                </div>
+                <div class="card">
+                    <h3>결제 상세 조회</h3>
+                    <div class="form-group">
+                        <label>DB 결제 ID</label>
+                        <input type="text" id="payment-detail-id" placeholder="DB 결제 ID">
+                    </div>
+                    <button class="btn btn-info" onclick="getPaymentDetail()">조회</button>
+                </div>
+            </section>
+            <!-- 환불 처리 섹션 -->
+            <section id="refund" class="section">
+                <h2>↩️ 환불 처리</h2>
+                <div class="card">
+                    <h3>환불 요청</h3>
+                    <div class="form-group">
+                        <label>DB 결제 ID</label>
+                        <input type="text" id="refund-payment-id" placeholder="DB 결제 ID">
+                    </div>
+                    <div class="form-group">
+                        <label>주문 ID</label>
+                        <input type="number" id="refund-order-id" placeholder="1">
+                    </div>
+                    <div class="form-group">
+                        <label>환불 사유</label>
+                        <textarea id="refund-reason" placeholder="환불 사유를 입력하세요..." rows="3"></textarea>
+                    </div>
+                    <button class="btn btn-danger" onclick="requestRefund()">환불 요청</button>
+                </div>
+                <div class="card">
+                    <h3>환불 상세 조회</h3>
+                    <div class="form-group">
+                        <label>환불 ID</label>
+                        <input type="number" id="refund-detail-id" placeholder="1">
+                    </div>
+                    <button class="btn btn-info" onclick="getRefundDetail()">조회</button>
+                </div>
+            </section>
+            <!-- 리뷰 관리 섹션 -->
+            <section id="review" class="section">
+                <h2>⭐ 리뷰 관리</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('review', 'create')">리뷰 작성</button>
+                    <button class="tab-btn" onclick="showTab('review', 'list')">리뷰 조회</button>
+                    <button class="tab-btn" onclick="showTab('review', 'manage')">리뷰 관리</button>
+                </div>
+                <div id="review-create" class="tab-content active">
+                    <div class="card">
+                        <h3>리뷰 작성</h3>
+                        <div class="form-group">
+                            <label>주문 ID</label>
+                            <input type="number" id="review-order-id" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <label>별점 (1-5)</label>
+                            <input type="number" id="review-rating" min="1" max="5" value="5">
+                        </div>
+                        <div class="form-group">
+                            <label>리뷰 내용</label>
+                            <textarea id="review-content" placeholder="리뷰 내용을 입력하세요..." rows="4"></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="createReview()">리뷰 작성</button>
+                    </div>
+                </div>
+                <div id="review-list" class="tab-content">
+                    <div class="card">
+                        <h3>식당별 리뷰 조회</h3>
+                        <div class="form-group">
+                            <label>식당 ID</label>
+                            <input type="number" id="review-store-id" placeholder="1">
+                        </div>
+                        <button class="btn btn-primary" onclick="getStoreReviews()">조회</button>
+                    </div>
+                    <div id="review-list-result"></div>
+                </div>
+                <div id="review-manage" class="tab-content">
+                    <div class="card">
+                        <h3>리뷰 수정</h3>
+                        <div class="form-group">
+                            <label>리뷰 ID</label>
+                            <input type="number" id="update-review-id" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <label>별점 (1-5)</label>
+                            <input type="number" id="update-review-rating" min="1" max="5" value="5">
+                        </div>
+                        <div class="form-group">
+                            <label>리뷰 내용</label>
+                            <textarea id="update-review-content" placeholder="새 리뷰 내용..." rows="4"></textarea>
+                        </div>
+                        <button class="btn btn-success" onclick="updateReview()">수정</button>
+                    </div>
+                    <div class="card">
+                        <h3>리뷰 삭제</h3>
+                        <div class="form-group">
+                            <label>리뷰 ID</label>
+                            <input type="number" id="delete-review-id" placeholder="1">
+                        </div>
+                        <button class="btn btn-danger" onclick="deleteReview()">삭제</button>
+                    </div>
+                </div>
+            </section>
+            <!-- 멤버십/포인트 섹션 -->
+            <section id="membership" class="section">
+                <h2>🎖️ 멤버십/포인트</h2>
+                <div class="card">
+                    <h3>내 멤버십 정보 조회</h3>
+                    <div class="form-group">
+                        <label>회원 ID</label>
+                        <input type="number" id="membership-member-id" placeholder="1">
+                    </div>
+                    <button class="btn btn-primary" onclick="getMembershipInfo()">조회</button>
+                </div>
+            </section>
+            <!-- 배달 시스템 섹션 -->
+            <section id="delivery" class="section">
+                <h2>🚚 배달 시스템</h2>
+                <div class="card">
+                    <h3>배달 요청 생성 (셀러 전용)</h3>
+                    <div class="form-group">
+                        <label>주문 ID</label>
+                        <input type="number" id="delivery-order-id" placeholder="1">
+                    </div>
+                    <button class="btn btn-primary" onclick="createDelivery()">배달 요청</button>
+                </div>
+                <div class="card">
+                    <h3>배달 완료 처리 (라이더 전용)</h3>
+                    <div class="form-group">
+                        <label>배달 ID</label>
+                        <input type="number" id="delivery-id" placeholder="1">
+                    </div>
+                    <button class="btn btn-success" onclick="completeDelivery()">배달 완료</button>
+                </div>
+                <div class="card">
+                    <h3>주문별 배달 상태 조회</h3>
+                    <div class="form-group">
+                        <label>주문 ID</label>
+                        <input type="number" id="delivery-order-detail-id" placeholder="1">
+                    </div>
+                    <button class="btn btn-info" onclick="getDeliveryDetail()">조회</button>
+                </div>
+            </section>
+            <!-- 쿠폰 관리 섹션 -->
+            <section id="coupon" class="section">
+                <h2>🎟️ 쿠폰 관리</h2>
+                <div class="card">
+                    <h3>쿠폰 생성</h3>
+                    <div class="form-group">
+                        <label>쿠폰명</label>
+                        <input type="text" id="coupon-name" placeholder="신규 회원 쿠폰">
+                    </div>
+                    <div class="form-group">
+                        <label>할인 금액</label>
+                        <input type="number" id="coupon-discount" placeholder="5000">
+                    </div>
+                    <div class="form-group">
+                        <label>총 발행 수량</label>
+                        <input type="number" id="coupon-quantity" placeholder="100">
+                    </div>
+                    <button class="btn btn-primary" onclick="createCoupon()">쿠폰 생성</button>
+                </div>
+                <div class="card">
+                    <h3>쿠폰 발급 (사용자가 받기)</h3>
+                    <div class="form-group">
+                        <label>쿠폰 ID</label>
+                        <input type="number" id="issue-coupon-id" placeholder="1">
+                    </div>
+                    <button class="btn btn-success" onclick="issueCoupon()">쿠폰 받기</button>
+                </div>
+            </section>
+            <!-- 결과 로그 (전역) -->
+            <div id="result-log" class="result-box">
+                <h3>🔔 결과 로그</h3>
+                <button class="btn btn-sm btn-secondary" onclick="clearLog()" style="float: right;">로그 지우기</button>
+                <pre id="result-content"></pre>
+            </div>
+        </main>
+    </div>
+</div>
+<script src="full-demo.js"></script>
+</body>
+</html>
